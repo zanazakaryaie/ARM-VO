@@ -11,7 +11,6 @@ ARM-VO is an efficient monocular visual odometry algorithm designed for ARM proc
 # How to build?
 Clone this repo and navigate to the folder. Open a terminal and type:
 ```
-git clone 
 cmake .
 make
 ```
