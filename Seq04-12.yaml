@@ -1,0 +1,35 @@
+%YAML:1.0
+
+#########################
+### Camera Parameters ###
+#########################
+
+fx: 707.0912
+fy: 707.0912
+cx: 601.8873
+cy: 183.1104
+
+height: 1.7
+pitch_angle: -0.03
+
+
+#########################
+### ARM-VO Parameters ###
+#########################
+
+# Number of FAST features per image
+nFeatures: 300
+
+#Kepoints with corner response lower than threshold are ignored (lower it if your images have low contrast)
+threshold: 10
+
+# Image is divided to a nRows * nCols grid
+nRows: 6
+nCols: 12
+
+
+##########################
+### Tracker Parameters ###
+##########################
+
+window_size: 15
