@@ -80,7 +80,6 @@ int main(int argc, char* argv[])
 
         GRIC(prev_keypoints, curr_keypoints, prev_keypoints.size(), F, H, 0.8, Fcriteria, Hcriteria);
 
-
         prev_inliers.clear();
         curr_inliers.clear();
 
