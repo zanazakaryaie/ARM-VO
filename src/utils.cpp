@@ -12,8 +12,6 @@ void read_params(std::string filename, Parameters &p)
         abort();
     }
 
-
-
     ///Calibration parameters
     float fx = fs["fx"];
     float fy = fs["fy"];
