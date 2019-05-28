@@ -20,7 +20,6 @@ void tracker::calcSharrDeriv(const Mat& src, Mat& dst)
     AutoBuffer<deriv_type> _tempBuf(delta*2 + 64);
     deriv_type *trow0 = alignPtr(_tempBuf + cn, 16), *trow1 = alignPtr(trow0 + delta, 16);
 
-
     unsigned int x0 = 1, x1 = cols-2;
 
     for( y = 0; y < rows; y++ )
