@@ -20,7 +20,6 @@ Open a terminal and type:
 ```
 ./ARM_VO pathToData paramsFileName
 ```
-If you use ARM-VO in academic work, please cit:
 
 
 
