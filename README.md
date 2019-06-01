@@ -2,7 +2,7 @@
 
 **Authors**: [Zana Zakaryaie Nejad](http://imrid.net/) and [Ali Hosseininaveh](https://wp.kntu.ac.ir/hosseininaveh/Hosseininaveh_CV.html)
 
-ARM-VO is an efficient monocular visual odometry algorithm designed for ARM processors. It uses NEON C intrinsics and multi-threading to accelerate keypoint detection and tracking. Results on KITTI dataset confirms 8 FPS performance on Raspberry Pi 3. 
+ARM-VO is an efficient monocular visual odometry algorithm designed for ARM processors. It uses NEON C intrinsics and multi-threading to accelerate keypoint detection and tracking. Check [this video](https://www.youtube.com/watch?v=2RwymYYxd5s&t=) to see the performance on Raspberry Pi 3 and Odroid XU4. 
 
 # Dependencies
 - Cmake
