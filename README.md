@@ -21,6 +21,12 @@ Open a terminal and type:
 ```
 ./ARM_VO pathToData paramsFileName
 ```
+
+# Limitations
+- ARM-VO recovers the scale if the camera height and pitch angle are provided. Thus, it is not applicable for drones or hand-held cameras.
+
+- The algorithm detects small-inter frame translations and pure rotations using GRIC but it doesn't decompose the estimated homography matrix. Track is lost if the camera rotates too much without translation. 
+
 # Notes
 - If you get low FPS, check your power adapter. Raspberry Pi 3 runs ARM-VO at 8 frames per second (averagelly) if powered up with a 5V-2A adapter. 
 
