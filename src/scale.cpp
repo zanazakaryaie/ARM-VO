@@ -84,7 +84,7 @@ float scaleEstimator::estimate(cv::Mat &X)
 
     float scale = cam_height/d.at<float>(best_idx);
 
-    if (scale < 0 || scale/prev_scale > 1.3)
+    if (scale < 0 || scale/prev_scale > 2.0)
         scale = prev_scale;
 
     prev_scale = scale;
