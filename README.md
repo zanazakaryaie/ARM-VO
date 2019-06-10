@@ -30,7 +30,10 @@ Open a terminal and type:
 # Notes
 - If you get low FPS, check your power adapter. Raspberry Pi 3 runs ARM-VO at 8 frames per second (averagelly) if powered up with a 5V-2A adapter. 
 
-- ARM-VO is a part of six-wheel surveying robot project named [MOOR](https://github.com/hosseininaveh/Moor). 
+- ARM-VO is a part of six-wheel surveying robot project named [MOOR](https://github.com/hosseininaveh/Moor).
+
+- If you use ARM-VO in an academic work, please cite:
+Zakaryaie Nejad, Z. & Hosseininaveh Ahmadabadian, A. Machine Vision and Applications (2019). https://doi.org/10.1007/s00138-019-01037-5
 
 
 
