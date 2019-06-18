@@ -35,6 +35,7 @@ int main(int argc, char* argv[])
 
     Mat prev_frame, curr_frame, F, H, R, t, mask, _3dPoints;
     vector<Point2f> prev_keypoints, curr_keypoints, prev_inliers, curr_inliers;
+    prev_inliers.reserve(p.nFeatures); curr_inliers.reserve(p.nFeatures);
     clock_t start, finish;
     Mat R_f = Mat::eye(3,3,CV_32FC1), t_f = Mat::zeros(3,1,CV_32FC1), traj = Mat::zeros(800, 800, CV_8UC3);
     float scale_factor, Fcriteria, Hcriteria;
@@ -55,7 +56,7 @@ int main(int argc, char* argv[])
     }
 
     Detector.detect(prev_frame, prev_keypoints);
-
+    
     for (;;)
     {
 
