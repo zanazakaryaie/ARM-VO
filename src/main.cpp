@@ -90,9 +90,6 @@ int main(int argc, char* argv[])
             fflush(stdout);
 
             ///Refine Fundamental Matrix
-            prev_inliers.reserve(prev_keypoints.size());
-            curr_inliers.reserve(curr_keypoints.size());
-
             for (size_t j=0; j<prev_keypoints.size(); j++)
             {
                 if (mask.at<uchar>(j)==1)
@@ -114,7 +111,7 @@ int main(int argc, char* argv[])
 
             Detector.detect(curr_frame, prev_keypoints);
 
-            prev_frame = curr_frame.clone();
+            curr_frame.copyTo(prev_frame);
 
         }
         else
