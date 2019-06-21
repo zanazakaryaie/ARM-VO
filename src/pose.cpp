@@ -160,14 +160,14 @@ void recoverPose( cv::Mat F, cv::InputArray _points1, cv::InputArray _points2, c
 
     P1(cv::Range::all(), cv::Range(0, 3)) = R1 * 1.0;
     P1.col(3) = t * 1.0;
-    P[0]=P1.clone();
+    P1.copyTo(P[0]);
     P1(cv::Range::all(), cv::Range(0, 3)) = R2 * 1.0; //P1.col(3) = t * 1.0;
-    P[1] = P1.clone();
+    P1.copyTo(P[1]);
     P1(cv::Range::all(), cv::Range(0, 3)) = R1 * 1.0;
     P1.col(3) = -t * 1.0;
-    P[2] = P1.clone();
+    P1.copyTo(P[2]);
     P1(cv::Range::all(), cv::Range(0, 3)) = R2 * 1.0; //P1.col(3) = -t * 1.0;
-    P[3] = P1.clone();
+    P1.copyTo(P[3]);
 
 
     // Do the cheirality check.
@@ -192,27 +192,27 @@ void recoverPose( cv::Mat F, cv::InputArray _points1, cv::InputArray _points2, c
     {
         R1.copyTo(_R);
         t.copyTo(_t);
-        X=Q[0].clone();
+        Q[0].copyTo(X);
     }
     else if (goodness[1] >= goodness[0] && goodness[1] >= goodness[2] && goodness[1] >= goodness[3])
     {
         R2.copyTo(_R);
         t.copyTo(_t);
-        X=Q[1].clone();
+        Q[1].copyTo(X);
     }
     else if (goodness[2] >= goodness[0] && goodness[2] >= goodness[1] && goodness[2] >= goodness[3])
     {
         t = -t;
         R1.copyTo(_R);
         t.copyTo(_t);
-        X=Q[2].clone();
+        Q[2].copyTo(X);
     }
     else
     {
         t = -t;
         R2.copyTo(_R);
         t.copyTo(_t);
-        X=Q[3].clone();
+        Q[3].copyTo(X);
     }
 
 
