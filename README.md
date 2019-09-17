@@ -6,7 +6,7 @@ ARM-VO is an efficient monocular visual odometry algorithm designed for ARM proc
 
 # Dependencies
 - Cmake
-- OpenCV ([built with TBB](https://www.theimpossiblecode.com/blog/intel-tbb-on-raspberry-pi/))
+- OpenCV ([built with TBB](http://imrid.net/?p=3917))
 
 # How to build?
 ```
