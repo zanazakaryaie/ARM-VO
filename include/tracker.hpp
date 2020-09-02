@@ -1,26 +1,20 @@
-#ifndef TRACKER_HPP_INCLUDED
-#define TRACKER_HPP_INCLUDED
+#pragma once
 
-#include "opencv2/video/tracking.hpp"
-
-using namespace std;
-using namespace cv;
+#include <opencv2/video/tracking.hpp>
 
 class tracker
 {
 public:
-    tracker(int windowSize);
-    void track(const Mat &img_1, const Mat &img_2, vector<Point2f>& points1, vector<Point2f>& points2);
+    void setWindowSize(const int windowSize);
+    void track(const cv::Mat &img_1, const cv::Mat &img_2, std::vector<cv::Point2f>& points1, std::vector<cv::Point2f>& points2);
+
 private:
-    Size winSize;
-    TermCriteria termcrit;
-    void calcSharrDeriv(const Mat& src, Mat& dst);
-    void calc_OpticalFlowPyrLK( InputArray _prevImg, InputArray _nextImg,
-                            InputArray _prevPts, InputOutputArray _nextPts,
-                            OutputArray _status,
-                            Size winSize, int maxLevel,
-                            TermCriteria criteria,
+    cv::Size winSize;
+    void calcSharrDeriv(const cv::Mat& src, cv::Mat& dst);
+    void calc_OpticalFlowPyrLK( cv::InputArray _prevImg, cv::InputArray _nextImg,
+                            cv::InputArray _prevPts, cv::InputOutputArray _nextPts,
+                            cv::OutputArray _status,
+                            cv::Size winSize, int maxLevel,
+                            cv::TermCriteria criteria,
                             int flags, double minEigThreshold );
 };
-
-#endif // TRACKER_HPP_INCLUDED
