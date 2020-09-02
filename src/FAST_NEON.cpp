@@ -12,11 +12,11 @@ const int (*offsets)[2] = offsets16;
 
 const uint8_t __attribute__ (( aligned (16) )) _Powers [16] = { 1, 2, 4, 8, 16, 32, 64, 128, 1, 2, 4, 8, 16, 32, 64, 128 };
 
-//~ Set the powers of 2 (do it once for all , if applicable )
-static uint8x16_t powers = vld1q_u8 ( _Powers );
+static uint8x16_t powers = vld1q_u8 ( _Powers ); //~ Set the powers of 2 (do it once for all , if applicable )
 
 
-
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 int cornerScore(const uchar* ptr, const int pixel[], int threshold)
 {
     const int K = 8, N = K*3 + 1;
@@ -70,8 +70,8 @@ int cornerScore(const uchar* ptr, const int pixel[], int threshold)
 }
 
 
-
-
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 void makeOffsets(int pixel[25], const int rowStride)
 {
 
@@ -82,12 +82,15 @@ void makeOffsets(int pixel[25], const int rowStride)
         pixel[k] = pixel[k - 16];
 }
 
+
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 uint16_t movemask ( uint8x16_t input )
 {
-//~ Compute mask from input
+    //~ Compute mask from input
     uint64x2_t _Mask = vpaddlq_u32 ( vpaddlq_u16 ( vpaddlq_u8 ( vandq_u8 (input, powers ))));
 
-//~ Get resulting bytes
+    //~ Get resulting bytes
     uint16_t mask ;
     vst1q_lane_u8 (( uint8_t *)& mask + 0, ( uint8x16_t )_Mask, 0);
     vst1q_lane_u8 (( uint8_t *)& mask + 1, ( uint8x16_t )_Mask, 8);
@@ -95,6 +98,9 @@ uint16_t movemask ( uint8x16_t input )
     return mask ;
 }
 
+
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 void FAST9_NEON(const cv::Mat &img, std::vector<cv::KeyPoint>& keypoints, int threshold)
 {
     const int K = 8, N = 25;
@@ -171,8 +177,6 @@ void FAST9_NEON(const cv::Mat &img, std::vector<cv::KeyPoint>& keypoints, int th
                     ptr -= 8;
                     continue ;
                 }
-
-
 
                 uint8x16_t c0 = vdupq_n_u8(0), c1 = c0, max0 = c0, max1 = c0;
                 for( k = 0; k < N; k++ )
