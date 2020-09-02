@@ -24,6 +24,21 @@ Open a terminal and type:
 ```
 ./ARM_VO pathToData paramsFileName
 ```
+# ROS (Optional)
+The ros node subscribes to "kitti/image" topic and publishes "arm_vo/pose" which is of type geometry_msg::Pose. To use the ROS node:
+Open a terminal and type:
+```
+cd ROS
+catkin_make
+source devel/setup.bash
+rosrun ARM_VO ARM_VO paramsFileName
+```
+Now, open another terminal and type:
+```
+cd ROS
+source devel/setup.bash
+rosrun ARM_VO ImagePublisher pathToData
+```
 
 # Limitations
 - ARM-VO recovers the scale if the camera height and pitch angle are provided. Thus, it is not applicable for drones or hand-held cameras.
