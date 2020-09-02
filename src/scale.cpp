@@ -1,34 +1,19 @@
 #include "scale.hpp"
 
-scaleEstimator::scaleEstimator(float a, float b)
+
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+void scaleEstimator::setCamera(const float height, const float pitch)
 {
-    cam_height = a;
-    cam_pitch = b;
-    n = (cv::Mat_<float>(2, 1) << cosf(-cam_pitch), sinf(-cam_pitch));
-    n_transpose = n.t();
-}
-
-void scaleEstimator::smallerThanMedian(cv::Mat &X,float &median)
-{
-    // set distance and index vector
-    std::vector<float> dist;
-    std::vector<int32_t> idx;
-    for (int32_t i=0; i<X.cols; i++)
-    {
-        dist.push_back(fabs(X.at<float>(0,i))+fabs(X.at<float>(1,i))+fabs(X.at<float>(2,i)));
-        idx.push_back(i);
-    }
-
-    // sort elements
-    sort(idx.begin(),idx.end(),idx_cmp<std::vector<float>&>(dist));
-
-    // get median
-    int32_t num_elem_half = idx.size()/2;
-    median = dist[idx[num_elem_half]];
+    cam_height = height;
+    cam_pitch = pitch;
+    n_transpose = (cv::Mat_<float>(1, 2) << cosf(-cam_pitch), sinf(-cam_pitch));
 }
 
 
-float scaleEstimator::estimate(cv::Mat &X)
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+float scaleEstimator::estimate(const cv::Mat &X)
 {
     std::vector<int32_t> pos_idx;
     pos_idx.reserve(X.cols);
@@ -89,4 +74,27 @@ float scaleEstimator::estimate(cv::Mat &X)
 
     prev_scale = scale;
     return scale;
+}
+
+
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+void scaleEstimator::smallerThanMedian(const cv::Mat &X, float &median)
+{
+    // set distance and index vector
+    std::vector<float> dist; dist.reserve(X.cols);
+    std::vector<int32_t> idx; idx.reserve(X.cols);
+
+    for (int32_t i=0; i<X.cols; i++)
+    {
+        dist.push_back(fabs(X.at<float>(0,i))+fabs(X.at<float>(1,i))+fabs(X.at<float>(2,i)));
+        idx.push_back(i);
+    }
+
+    // sort elements
+    sort(idx.begin(),idx.end(),idx_cmp<std::vector<float>&>(dist));
+
+    // get median
+    int32_t num_elem_half = idx.size()/2;
+    median = dist[idx[num_elem_half]];
 }
