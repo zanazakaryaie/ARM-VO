@@ -1,5 +1,4 @@
-#ifndef SCALE_HPP_INCLUDED
-#define SCALE_HPP_INCLUDED
+#pragma once
 
 #include <opencv2/core.hpp>
 
@@ -17,16 +16,14 @@ template<class T> struct idx_cmp
 class scaleEstimator
 {
 public:
-    scaleEstimator(float a, float b);
-    float estimate(cv::Mat &X);
+    void setCamera(const float height, const float pitch);
+    float estimate(const cv::Mat &X);
+
 private:
+    void smallerThanMedian (const cv::Mat &X, float &median);
     float cam_height;
     float cam_pitch;
     float motion_threshold = 100.0;
     float prev_scale = 1;
-    cv::Mat n, n_transpose;
-    void smallerThanMedian (cv::Mat &X,float &median);
+    cv::Mat n_transpose;
 };
-
-
-#endif // SCALE_HPP_INCLUDED
