@@ -50,7 +50,18 @@ rosrun ARM_VO ImagePublisher pathToData
 - If you get low FPS, check your power adapter. Raspberry Pi 3 runs ARM-VO at 8 frames per second (averagelly) if powered up with a 5V-2A adapter. 
 
 - If you use ARM-VO in an academic work, please cite: <br />
-Zakaryaie Nejad, Z. & Hosseininaveh Ahmadabadian, A. Machine Vision and Applications (2019). https://doi.org/10.1007/s00138-019-01037-5
+```
+@article{nejad2019arm,
+  title={ARM-VO: an efficient monocular visual odometry for ground vehicles on ARM CPUs},
+  author={Nejad, Zana Zakaryaie and Ahmadabadian, Ali Hosseininaveh},
+  journal={Machine Vision and Applications},
+  volume={30},
+  number={6},
+  pages={1061--1070},
+  year={2019},
+  publisher={Springer}
+}
+```
 
 - ARM-VO is a part of six-wheel surveying robot project named [MOOR](https://github.com/hosseininaveh/Moor).
 
