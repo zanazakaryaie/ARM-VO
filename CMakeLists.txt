@@ -3,14 +3,14 @@ cmake_minimum_required(VERSION 2.8)
 project(ARM_VO)
 
 SET(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3 -std=c++11 -mfpu=neon -mfloat-abi=hard")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3 -std=c++11 -mfpu=neon -mfloat-abi=hard -funroll-loops -Ofast")
 
-find_package(OpenCV QUIET)
+find_package(OpenCV REQUIRED)
 if(NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV not found.")
 endif()
 
-find_package(OpenMP QUIET)
+find_package(OpenMP REQUIRED)
 if(OpenMP_FOUND)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 else()
