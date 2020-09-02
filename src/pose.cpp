@@ -1,17 +1,18 @@
 #include "pose.hpp"
 
 
-void decomposeEssentialMat( cv::Mat E, cv::Mat &R1, cv::Mat &R2, cv::Mat &t )
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+void decomposeEssentialMat( const cv::Mat& E, cv::Mat &R1, cv::Mat &R2, cv::Mat &t )
 {
-
     cv::Mat D, U, Vt;
     cv::SVD::compute(E, D, U, Vt);
 
     if (determinant(U) < 0) U *= -1.;
     if (determinant(Vt) < 0) Vt *= -1.;
 
-    static cv::Mat W = (cv::Mat_<float>(3, 3) << 0, 1, 0, -1, 0, 0, 0, 0, 1);
-    static cv::Mat W_trans = W.t();
+    static const cv::Mat W = (cv::Mat_<float>(3, 3) << 0, 1, 0, -1, 0, 0, 0, 0, 1);
+    static const cv::Mat W_trans = W.t();
 
     R1 = U * W * Vt;
     R2 = U * W_trans * Vt;
@@ -19,78 +20,15 @@ void decomposeEssentialMat( cv::Mat E, cv::Mat &R1, cv::Mat &R2, cv::Mat &t )
 }
 
 
-
-void cvTriangulate_Points(CvMat* projMatr1, CvMat* projMatr2, CvMat* projPoints1, CvMat* projPoints2, CvMat* points4D)
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+int cheiralCheck(const cv::Mat &P1, const cv::Mat &points1, const cv::Mat &points2,
+                 float dist, cv::Mat &mask, cv::Mat &X)
 {
-
-    int numPoints = projPoints1->cols;
-
-    cv::Matx<float, 4, 4> matrA;
-    cv::Matx<float, 4, 4> matrU;
-    cv::Matx<float, 4, 1> matrW;
-    cv::Matx<float, 4, 4> matrV;
-
-    CvMat* projPoints[2] = {projPoints1, projPoints2};
-    CvMat* projMatrs[2] = {projMatr1, projMatr2};
-
-
-    float x,y;
-    /* Solve system for each point */
-    int i,j;
-    for( i = 0; i < numPoints; i++ )/* For each point */
-    {
-        /* Fill matrix for current point */
-        for( j = 0; j < 2; j++ )/* For each view */
-        {
-            x = cvmGet(projPoints[j],0,i);
-            y = cvmGet(projPoints[j],1,i);
-            for( int k = 0; k < 4; k++ )
-            {
-                matrA(j*2+0, k) = x * cvmGet(projMatrs[j],2,k) - cvmGet(projMatrs[j],0,k);
-                matrA(j*2+1, k) = y * cvmGet(projMatrs[j],2,k) - cvmGet(projMatrs[j],1,k);
-            }
-        }
-        /* Solve system for current point */
-        {
-            cv::SVD::compute(matrA, matrW, matrU, matrV);
-
-            /* Copy computed point */
-            cvmSet(points4D,0,i,matrV(3,0));/* X */
-            cvmSet(points4D,1,i,matrV(3,1));/* Y */
-            cvmSet(points4D,2,i,matrV(3,2));/* Z */
-            cvmSet(points4D,3,i,matrV(3,3));/* W */
-        }
-    }
-}
-
-
-
-
-
-void triangulate_Points( cv::Mat &projMatr1, cv::Mat &projMatr2,
-                         cv::InputArray _projPoints1, cv::InputArray _projPoints2,
-                         cv::OutputArray _points4D )
-{
-    cv::Mat points1 = _projPoints1.getMat(), points2 = _projPoints2.getMat();
-
-    CvMat cvMatr1 = projMatr1, cvMatr2 = projMatr2;
-    CvMat cvPoints1 = points1, cvPoints2 = points2;
-
-    _points4D.create(4, points1.cols, 5);
-    CvMat cvPoints4D = _points4D.getMat();
-
-    cvTriangulate_Points(&cvMatr1, &cvMatr2, &cvPoints1, &cvPoints2, &cvPoints4D);
-}
-
-
-
-
-int cheiralCheck(cv::Mat &P1, cv::Mat &points1, cv::Mat &points2, float dist, cv::Mat &mask, cv::Mat &X)
-{
-    static cv::Mat P0 = cv::Mat::eye(3, 4, 5);
+    static const cv::Mat P0 = cv::Mat::eye(3, 4, 5);
 
     cv::Mat Q;
-    triangulate_Points(P0, P1, points1, points2, Q);
+    triangulatePoints(P0, P1, points1, points2, Q);
 
     cv::Mat mask1 = Q.row(2).mul(Q.row(3)) >= 0;
     Q.row(0) /= Q.row(3);
@@ -113,17 +51,16 @@ int cheiralCheck(cv::Mat &P1, cv::Mat &points1, cv::Mat &points2, float dist, cv
 }
 
 
-
-
-void recoverPose( cv::Mat F, cv::InputArray _points1, cv::InputArray _points2, cv::Mat &cameraMatrix,
-                  cv::OutputArray _R, cv::OutputArray _t, cv::Mat &mask, cv::Mat &X)
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+void recoverPose( cv::Mat F, const cv::InputArray _points1, const cv::InputArray _points2,
+                 const cv::Mat &cameraMatrix, cv::OutputArray _R, cv::OutputArray _t, cv::Mat &mask, cv::Mat &X)
 {
-
     F.convertTo(F, CV_32F);
 
-    static cv::Mat cameraMatrixTransposed = cameraMatrix.t();
+    static const cv::Mat cameraMatrixTransposed = cameraMatrix.t();
 
-    cv::Mat E = cameraMatrixTransposed*F*cameraMatrix; //Essential Matrix
+    const cv::Mat E = cameraMatrixTransposed*F*cameraMatrix; //Essential Matrix
 
     cv::Mat points1, points2;
 
@@ -135,10 +72,10 @@ void recoverPose( cv::Mat F, cv::InputArray _points1, cv::InputArray _points2, c
     points1 = points1.reshape(1, npoints);
     points2 = points2.reshape(1, npoints);
 
-    static float fx = cameraMatrix.at<float>(0,0);
-    static float fy = cameraMatrix.at<float>(1,1);
-    static float cx = cameraMatrix.at<float>(0,2);
-    static float cy = cameraMatrix.at<float>(1,2);
+    static const float fx = cameraMatrix.at<float>(0,0);
+    static const float fy = cameraMatrix.at<float>(1,1);
+    static const float cx = cameraMatrix.at<float>(0,2);
+    static const float cy = cameraMatrix.at<float>(1,2);
 
 
     points1.col(0) = (points1.col(0) - cx) / fx;
@@ -214,6 +151,4 @@ void recoverPose( cv::Mat F, cv::InputArray _points1, cv::InputArray _points2, c
         t.copyTo(_t);
         Q[3].copyTo(X);
     }
-
-
 }
