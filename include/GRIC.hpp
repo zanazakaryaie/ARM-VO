@@ -1,5 +1,4 @@
-#ifndef GRIC_HPP_INCLUDED
-#define GRIC_HPP_INCLUDED
+#pragma once
 
 #include <vector>
 #include <opencv2/core.hpp>
@@ -21,5 +20,3 @@ void sampsonH_dsqr(std::vector<float> &H, std::vector<cv::Point2f> &pts0, std::v
  */
 void GRIC(std::vector<cv::Point2f> &pts0, std::vector<cv::Point2f> &pts1, int nmatches,
           cv::Mat &Fundamental, cv::Mat &Homography, float sigma, float &gricF, float &gricH);
-
-#endif // GRIC_HPP_INCLUDED
