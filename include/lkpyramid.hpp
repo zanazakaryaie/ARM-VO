@@ -4,6 +4,7 @@
 #include "opencv2/video/tracking.hpp"
 
 #define  CV_DESCALE(x,n)     (((x) + (1 << ((n)-1))) >> (n))
+#define CV_DECL_ALIGNED(x) __attribute__ ((aligned (x)))
 
 namespace cv
 {
