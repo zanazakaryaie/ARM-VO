@@ -1,13 +1,45 @@
 #include "tracker.hpp"
 #include "lkpyramid.hpp"
 
-tracker::tracker(int windowSize)
+using namespace cv;
+using namespace std;
+
+
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+void tracker::setWindowSize(const int windowSize)
 {
     winSize = Size(windowSize, windowSize);
-    termcrit =TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 0.01);
 }
 
 
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
+void tracker::track(const Mat &img_1, const Mat &img_2, vector<Point2f>& points1, vector<Point2f>& points2)
+{
+    vector<uchar> status;
+    points2 = points1;
+    TermCriteria termcrit = TermCriteria(TermCriteria::COUNT+TermCriteria::EPS, 30, 0.01);
+    calc_OpticalFlowPyrLK(img_1, img_2, points1, points2, status, winSize, 3, termcrit, OPTFLOW_USE_INITIAL_FLOW, 0.001);
+
+    //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
+    unsigned int indexCorrection = 0;
+    Point2f pt;
+    for( size_t i=0; i<status.size(); i++)
+    {
+        pt = points2[i- indexCorrection];
+        if ((status[i] == 0)||(pt.x<0)||(pt.y<0))
+        {
+            points1.erase (points1.begin() + i - indexCorrection);
+            points2.erase (points2.begin() + i - indexCorrection);
+            indexCorrection++;
+        }
+    }
+}
+
+
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 void tracker::calcSharrDeriv(const Mat& src, Mat& dst)
 {
     using cv::detail::deriv_type;
@@ -107,7 +139,8 @@ void tracker::calcSharrDeriv(const Mat& src, Mat& dst)
 }
 
 
-
+// -------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------
 void tracker::calc_OpticalFlowPyrLK(InputArray _prevImg, InputArray _nextImg,
                             InputArray _prevPts, InputOutputArray _nextPts,
                             OutputArray _status,
@@ -163,27 +196,4 @@ void tracker::calc_OpticalFlowPyrLK(InputArray _prevImg, InputArray _nextImg,
                       flags, (float)minEigThreshold));
     }
 
-}
-
-
-
-void tracker::track(const Mat &img_1, const Mat &img_2, vector<Point2f>& points1, vector<Point2f>& points2)
-{
-    vector<uchar> status;
-    points2 = points1;
-    calc_OpticalFlowPyrLK(img_1, img_2, points1, points2, status, winSize, 3, termcrit, OPTFLOW_USE_INITIAL_FLOW, 0.001);
-    //getting rid of points for which the KLT tracking failed or those who have gone outside the frame
-    unsigned int indexCorrection = 0;
-    Point2f pt;
-    for( size_t i=0; i<status.size(); i++)
-    {
-        pt = points2[i- indexCorrection];
-        if ((status[i] == 0)||(pt.x<0)||(pt.y<0))
-        {
-            points1.erase (points1.begin() + i - indexCorrection);
-            points2.erase (points2.begin() + i - indexCorrection);
-            indexCorrection++;
-        }
-
-    }
 }
