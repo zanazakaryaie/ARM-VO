@@ -12,6 +12,8 @@ find_package(OpenCV)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -std=c++11 -mfpu=neon -mfloat-abi=hard -funroll-loops -Ofast")
 
+catkin_package()
+
 include_directories(${catkin_INCLUDE_DIRS} "include" "../../include")
 
 
