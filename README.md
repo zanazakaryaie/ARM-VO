@@ -7,25 +7,25 @@ ARM-VO is an efficient monocular visual odometry algorithm designed for ARM proc
 [![Demo ARM-VO alpha](https://j.gifs.com/OM0NWR.gif)](https://www.youtube.com/watch?v=2RwymYYxd5s&t=)
 
 
-# Dependencies
+## Dependencies
 - Cmake
 - OpenCV ([built with TBB](http://imrid.net/?p=3917))
 - ROS (Optional)
 
-# How to build?
+## How to build?
 ```
 git clone https://github.com/zanazakaryaie/ARM-VO.git
 cd ARM-VO
 cmake .
 make
 ```
-# Test on KITTI dataset
+## Test on KITTI dataset
 Download the odometry dataset from [here](http://www.cvlibs.net/datasets/kitti/eval_odometry.php).
 Open a terminal and type:
 ```
 ./ARM_VO pathToData paramsFileName
 ```
-# ROS (Optional)
+## ROS (Optional)
 The ros node subscribes to "kitti/image" topic and publishes "arm_vo/pose" which is of type geometry_msg::Pose. To use the ROS node:
 Open a terminal and type:
 ```
@@ -41,12 +41,12 @@ source devel/setup.bash
 rosrun ARM_VO ImagePublisher pathToData
 ```
 
-# Limitations
+## Limitations
 - ARM-VO recovers the scale if the camera height and pitch angle are provided. Thus, it is not applicable for drones or hand-held cameras.
 
 - The algorithm detects small-inter frame translations and pure rotations using GRIC but it doesn't decompose the estimated homography matrix. Track is lost if the camera rotates too much without translation. 
 
-# Notes
+## Notes
 - If you get low FPS, check your power adapter. Raspberry Pi 3 runs ARM-VO at 8 frames per second (averagelly) if powered up with a 5V-2A adapter. 
 
 - If you use ARM-VO in an academic work, please cite: <br />
