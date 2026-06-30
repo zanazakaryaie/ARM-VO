@@ -4,8 +4,8 @@
 #include <optional>
 #include <vector>
 
-#include "Tracker.hpp"
-#include "detector.hpp"
+#include "KeypointTracker.hpp"
+#include "KeypointDetector.hpp"
 #include "Types.hpp"
 
 namespace armvo

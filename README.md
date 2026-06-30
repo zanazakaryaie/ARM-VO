@@ -1,4 +1,4 @@
-# ARM-VO 2.0
+# ARM-VO
 
 ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. It is highly optimized for ARM CPUs as it uses NEON C intrinsics and multi-threading to accelerate keypoint detection and tracking. 
 
@@ -7,6 +7,7 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
 | <img src="docs/assets/Sequence5.png" width="100%"> | <img src="docs/assets/Sequence7.png" width="100%"> | <img src="docs/assets/Sequence10.png" width="100%"> |
 
 ## Changelog (compared to version 1)
+- Results are deterministic
 - Scale estimation is more accurate (but slower)
 - Camera pitch angle is no longer required (providing camera height is enough)
 - RGB and BGR inputs are supported

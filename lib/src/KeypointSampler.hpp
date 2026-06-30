@@ -7,7 +7,7 @@
 #include <opencv2/core/mat.hpp>
 #include <opencv2/core/types.hpp>
 
-#include "detector.hpp"
+#include "KeypointDetector.hpp"
 
 namespace armvo
 {

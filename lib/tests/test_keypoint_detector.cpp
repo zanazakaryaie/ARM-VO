@@ -11,7 +11,7 @@
 #include <utility>
 #include <vector>
 
-#include "detector.hpp"
+#include "KeypointDetector.hpp"
 
 namespace
 {

@@ -9,7 +9,7 @@
 #include <stdexcept>
 #include <vector>
 
-#include "Tracker.hpp"
+#include "KeypointTracker.hpp"
 
 namespace
 {

@@ -1,4 +1,4 @@
-#include "detector.hpp"
+#include "KeypointDetector.hpp"
 
 #include <algorithm>
 #include <cstring>

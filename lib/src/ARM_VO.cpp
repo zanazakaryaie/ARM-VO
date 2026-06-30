@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "ARM_VO.hpp"
-#include "Tracker.hpp"
-#include "detector.hpp"
+#include "KeypointDetector.hpp"
+#include "KeypointTracker.hpp"
 #include "Geometry.hpp"
 #include "KeypointSampler.hpp"
 #include "SemanticSegmentorNcnn.hpp"

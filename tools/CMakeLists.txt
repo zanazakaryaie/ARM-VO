@@ -6,6 +6,7 @@ add_library(ArmVOtools SHARED)
 target_sources(ArmVOtools PRIVATE ${TOOLS_SOURCES})
 target_include_directories(ArmVOtools
     PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/armvo/tools>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

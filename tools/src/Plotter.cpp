@@ -1,4 +1,4 @@
-#include "viewer.hpp"
+#include "Plotter.hpp"
 
 #include <algorithm>
 #include <array>

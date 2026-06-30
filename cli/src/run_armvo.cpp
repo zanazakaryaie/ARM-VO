@@ -10,7 +10,7 @@
 #include "cxxopts.hpp"
 
 #include <armvo/ARM_VO.hpp> 
-#include <armvo/tools/viewer.hpp>
+#include <armvo/tools/Plotter.hpp>
 #include <armvo/tools/FileTools.hpp>
 #include <armvo/tools/ErrorEstimator.hpp>
 
