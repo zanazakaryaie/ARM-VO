@@ -1,0 +1,37 @@
+find_package(Catch2 2 REQUIRED CONFIG)
+include(Catch)
+
+set(ARMVO_PRIVATE_TEST_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/src")
+
+add_executable(test_load_config test_load_config.cpp)
+target_link_libraries(test_load_config PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_load_config)
+
+add_executable(test_arm_vo test_arm_vo.cpp)
+target_link_libraries(test_arm_vo PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_arm_vo)
+
+add_executable(test_keypoint_detector test_keypoint_detector.cpp)
+target_include_directories(test_keypoint_detector PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_keypoint_detector PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_keypoint_detector)
+
+add_executable(test_keypoint_sampler test_keypoint_sampler.cpp)
+target_include_directories(test_keypoint_sampler PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_keypoint_sampler PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_keypoint_sampler)
+
+add_executable(test_keypoint_tracker test_keypoint_tracker.cpp)
+target_include_directories(test_keypoint_tracker PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_keypoint_tracker PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_keypoint_tracker)
+
+add_executable(test_geometry test_geometry.cpp)
+target_include_directories(test_geometry PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_geometry PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_geometry)
+
+add_executable(test_semantic_segmentor test_semantic_segmentor.cpp)
+target_include_directories(test_semantic_segmentor PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_semantic_segmentor PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_semantic_segmentor)

@@ -1,0 +1,24 @@
+%YAML:1.0
+
+Vehicle:
+  max_speed: 90 # maximum speed of the vehicle in km/h
+
+Camera:
+  # Raw KITTI left color camera, image_02, from 2011_10_03 calib_cam_to_cam.txt.
+  fx: 960.1149
+  fy: 954.8911
+  cx: 694.7923
+  cy: 240.3547
+  distortions: [-0.3685917, 0.1928022, 0.0004069233, 0.0007247536, -0.06276909]
+  fps: 10
+  height: 1.7 # in meters
+  pixel_format: "bgr"
+
+Keypoint_Detector:
+  num_points: 500
+  response_threshold: 5 # use a lower value for low texture scenes
+  num_image_grid_rows: 6 # number of rows for generating image patches
+  num_image_grid_cols: 12 # number of cols for generating image patches
+
+Keypoint_Tracker:
+  window_size: 15 # bigger numbers increase tracker accuracy while making it slower

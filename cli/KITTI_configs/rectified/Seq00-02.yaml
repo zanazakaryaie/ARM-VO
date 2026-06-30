@@ -1,0 +1,22 @@
+%YAML:1.0
+
+Vehicle:
+  max_speed: 90 # maximum speed of the vehicle in km/h
+
+Camera:
+  fx: 718.856
+  fy: 718.856
+  cx: 607.1928
+  cy: 185.2157
+  fps: 10
+  height: 1.7 # in meters
+  pixel_format: "bgr"
+
+Keypoint_Detector:
+  num_points: 500
+  response_threshold: 5 # use a lower value for low texture scenes
+  num_image_grid_rows: 6 # number of rows for generating image patches
+  num_image_grid_cols: 12 # number of cols for generating image patches
+
+Keypoint_Tracker:
+  window_size: 15 # bigger numbers increase tracker accuracy while making it slower

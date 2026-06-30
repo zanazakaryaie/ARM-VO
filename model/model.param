@@ -1,0 +1,101 @@
+7767517
+99 112
+Input                    input_image              0 1 input_image
+Split                    splitncnn_input0         1 2 input_image input_image_splitncnn_0 input_image_splitncnn_1
+Convolution              /detail/S1/S1.0/conv/Conv 1 1 input_image_splitncnn_1 /detail/S1/S1.0/relu/Relu_output_0 0=64 1=3 3=2 4=1 5=1 6=1728 9=1
+Convolution              /detail/S1/S1.1/conv/Conv 1 1 /detail/S1/S1.0/relu/Relu_output_0 /detail/S1/S1.1/relu/Relu_output_0 0=64 1=3 4=1 5=1 6=36864 9=1
+Convolution              /detail/S2/S2.0/conv/Conv 1 1 /detail/S1/S1.1/relu/Relu_output_0 /detail/S2/S2.0/relu/Relu_output_0 0=64 1=3 3=2 4=1 5=1 6=36864 9=1
+Convolution              /detail/S2/S2.1/conv/Conv 1 1 /detail/S2/S2.0/relu/Relu_output_0 /detail/S2/S2.1/relu/Relu_output_0 0=64 1=3 4=1 5=1 6=36864 9=1
+Convolution              /detail/S2/S2.2/conv/Conv 1 1 /detail/S2/S2.1/relu/Relu_output_0 /detail/S2/S2.2/relu/Relu_output_0 0=64 1=3 4=1 5=1 6=36864 9=1
+Convolution              /detail/S3/S3.0/conv/Conv 1 1 /detail/S2/S2.2/relu/Relu_output_0 /detail/S3/S3.0/relu/Relu_output_0 0=128 1=3 3=2 4=1 5=1 6=73728 9=1
+Convolution              /detail/S3/S3.1/conv/Conv 1 1 /detail/S3/S3.0/relu/Relu_output_0 /detail/S3/S3.1/relu/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+Convolution              /detail/S3/S3.2/conv/Conv 1 1 /detail/S3/S3.1/relu/Relu_output_0 /detail/S3/S3.2/relu/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+Split                    splitncnn_0              1 2 /detail/S3/S3.2/relu/Relu_output_0 /detail/S3/S3.2/relu/Relu_output_0_splitncnn_0 /detail/S3/S3.2/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S1S2/conv/conv/Conv 1 1 input_image_splitncnn_0 /segment/S1S2/conv/relu/Relu_output_0 0=16 1=3 3=2 4=1 5=1 6=432 9=1
+Split                    splitncnn_1              1 2 /segment/S1S2/conv/relu/Relu_output_0 /segment/S1S2/conv/relu/Relu_output_0_splitncnn_0 /segment/S1S2/conv/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S1S2/left/left.0/conv/Conv 1 1 /segment/S1S2/conv/relu/Relu_output_0_splitncnn_1 /segment/S1S2/left/left.0/relu/Relu_output_0 0=8 1=1 5=1 6=128 9=1
+Convolution              /segment/S1S2/left/left.1/conv/Conv 1 1 /segment/S1S2/left/left.0/relu/Relu_output_0 /segment/S1S2/left/left.1/relu/Relu_output_0 0=16 1=3 3=2 4=1 5=1 6=1152 9=1
+Pooling                  /segment/S1S2/right/MaxPool 1 1 /segment/S1S2/conv/relu/Relu_output_0_splitncnn_0 /segment/S1S2/right/MaxPool_output_0 1=3 2=2 3=1 5=1
+Concat                   /segment/S1S2/Concat     2 1 /segment/S1S2/left/left.1/relu/Relu_output_0 /segment/S1S2/right/MaxPool_output_0 /segment/S1S2/Concat_output_0
+Convolution              /segment/S1S2/fuse/conv/Conv 1 1 /segment/S1S2/Concat_output_0 /segment/S1S2/fuse/relu/Relu_output_0 0=16 1=3 4=1 5=1 6=4608 9=1
+Split                    splitncnn_2              1 2 /segment/S1S2/fuse/relu/Relu_output_0 /segment/S1S2/fuse/relu/Relu_output_0_splitncnn_0 /segment/S1S2/fuse/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S3/S3.0/conv1/conv/Conv 1 1 /segment/S1S2/fuse/relu/Relu_output_0_splitncnn_1 /segment/S3/S3.0/conv1/relu/Relu_output_0 0=16 1=3 4=1 5=1 6=2304 9=1
+ConvolutionDepthWise     /segment/S3/S3.0/dwconv1/dwconv1.0/Conv 1 1 /segment/S3/S3.0/conv1/relu/Relu_output_0 /segment/S3/S3.0/dwconv1/dwconv1.0/Conv_output_0 0=96 1=3 3=2 4=1 5=1 6=864 7=16
+ConvolutionDepthWise     /segment/S3/S3.0/dwconv2/dwconv2.0/Conv 1 1 /segment/S3/S3.0/dwconv1/dwconv1.0/Conv_output_0 /segment/S3/S3.0/dwconv2/dwconv2.2/Relu_output_0 0=96 1=3 4=1 5=1 6=864 7=96 9=1
+Convolution              /segment/S3/S3.0/conv2/conv2.0/Conv 1 1 /segment/S3/S3.0/dwconv2/dwconv2.2/Relu_output_0 /segment/S3/S3.0/conv2/conv2.0/Conv_output_0 0=32 1=1 5=1 6=3072
+ConvolutionDepthWise     /segment/S3/S3.0/shortcut/shortcut.0/Conv 1 1 /segment/S1S2/fuse/relu/Relu_output_0_splitncnn_0 /segment/S3/S3.0/shortcut/shortcut.0/Conv_output_0 0=16 1=3 3=2 4=1 5=1 6=144 7=16
+Convolution              /segment/S3/S3.0/shortcut/shortcut.2/Conv 1 1 /segment/S3/S3.0/shortcut/shortcut.0/Conv_output_0 /segment/S3/S3.0/shortcut/shortcut.2/Conv_output_0 0=32 1=1 5=1 6=512
+BinaryOp                 /segment/S3/S3.0/Add     2 1 /segment/S3/S3.0/conv2/conv2.0/Conv_output_0 /segment/S3/S3.0/shortcut/shortcut.2/Conv_output_0 /segment/S3/S3.0/Add_output_0
+ReLU                     /segment/S3/S3.0/relu/Relu 1 1 /segment/S3/S3.0/Add_output_0 /segment/S3/S3.0/relu/Relu_output_0
+Split                    splitncnn_3              1 2 /segment/S3/S3.0/relu/Relu_output_0 /segment/S3/S3.0/relu/Relu_output_0_splitncnn_0 /segment/S3/S3.0/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S3/S3.1/conv1/conv/Conv 1 1 /segment/S3/S3.0/relu/Relu_output_0_splitncnn_1 /segment/S3/S3.1/conv1/relu/Relu_output_0 0=32 1=3 4=1 5=1 6=9216 9=1
+ConvolutionDepthWise     /segment/S3/S3.1/dwconv/dwconv.0/Conv 1 1 /segment/S3/S3.1/conv1/relu/Relu_output_0 /segment/S3/S3.1/dwconv/dwconv.2/Relu_output_0 0=192 1=3 4=1 5=1 6=1728 7=32 9=1
+Convolution              /segment/S3/S3.1/conv2/conv2.0/Conv 1 1 /segment/S3/S3.1/dwconv/dwconv.2/Relu_output_0 /segment/S3/S3.1/conv2/conv2.0/Conv_output_0 0=32 1=1 5=1 6=6144
+BinaryOp                 /segment/S3/S3.1/Add     2 1 /segment/S3/S3.1/conv2/conv2.0/Conv_output_0 /segment/S3/S3.0/relu/Relu_output_0_splitncnn_0 /segment/S3/S3.1/Add_output_0
+ReLU                     /segment/S3/S3.1/relu/Relu 1 1 /segment/S3/S3.1/Add_output_0 /segment/S3/S3.1/relu/Relu_output_0
+Split                    splitncnn_4              1 2 /segment/S3/S3.1/relu/Relu_output_0 /segment/S3/S3.1/relu/Relu_output_0_splitncnn_0 /segment/S3/S3.1/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S4/S4.0/conv1/conv/Conv 1 1 /segment/S3/S3.1/relu/Relu_output_0_splitncnn_1 /segment/S4/S4.0/conv1/relu/Relu_output_0 0=32 1=3 4=1 5=1 6=9216 9=1
+ConvolutionDepthWise     /segment/S4/S4.0/dwconv1/dwconv1.0/Conv 1 1 /segment/S4/S4.0/conv1/relu/Relu_output_0 /segment/S4/S4.0/dwconv1/dwconv1.0/Conv_output_0 0=192 1=3 3=2 4=1 5=1 6=1728 7=32
+ConvolutionDepthWise     /segment/S4/S4.0/dwconv2/dwconv2.0/Conv 1 1 /segment/S4/S4.0/dwconv1/dwconv1.0/Conv_output_0 /segment/S4/S4.0/dwconv2/dwconv2.2/Relu_output_0 0=192 1=3 4=1 5=1 6=1728 7=192 9=1
+Convolution              /segment/S4/S4.0/conv2/conv2.0/Conv 1 1 /segment/S4/S4.0/dwconv2/dwconv2.2/Relu_output_0 /segment/S4/S4.0/conv2/conv2.0/Conv_output_0 0=64 1=1 5=1 6=12288
+ConvolutionDepthWise     /segment/S4/S4.0/shortcut/shortcut.0/Conv 1 1 /segment/S3/S3.1/relu/Relu_output_0_splitncnn_0 /segment/S4/S4.0/shortcut/shortcut.0/Conv_output_0 0=32 1=3 3=2 4=1 5=1 6=288 7=32
+Convolution              /segment/S4/S4.0/shortcut/shortcut.2/Conv 1 1 /segment/S4/S4.0/shortcut/shortcut.0/Conv_output_0 /segment/S4/S4.0/shortcut/shortcut.2/Conv_output_0 0=64 1=1 5=1 6=2048
+BinaryOp                 /segment/S4/S4.0/Add     2 1 /segment/S4/S4.0/conv2/conv2.0/Conv_output_0 /segment/S4/S4.0/shortcut/shortcut.2/Conv_output_0 /segment/S4/S4.0/Add_output_0
+ReLU                     /segment/S4/S4.0/relu/Relu 1 1 /segment/S4/S4.0/Add_output_0 /segment/S4/S4.0/relu/Relu_output_0
+Split                    splitncnn_5              1 2 /segment/S4/S4.0/relu/Relu_output_0 /segment/S4/S4.0/relu/Relu_output_0_splitncnn_0 /segment/S4/S4.0/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S4/S4.1/conv1/conv/Conv 1 1 /segment/S4/S4.0/relu/Relu_output_0_splitncnn_1 /segment/S4/S4.1/conv1/relu/Relu_output_0 0=64 1=3 4=1 5=1 6=36864 9=1
+ConvolutionDepthWise     /segment/S4/S4.1/dwconv/dwconv.0/Conv 1 1 /segment/S4/S4.1/conv1/relu/Relu_output_0 /segment/S4/S4.1/dwconv/dwconv.2/Relu_output_0 0=384 1=3 4=1 5=1 6=3456 7=64 9=1
+Convolution              /segment/S4/S4.1/conv2/conv2.0/Conv 1 1 /segment/S4/S4.1/dwconv/dwconv.2/Relu_output_0 /segment/S4/S4.1/conv2/conv2.0/Conv_output_0 0=64 1=1 5=1 6=24576
+BinaryOp                 /segment/S4/S4.1/Add     2 1 /segment/S4/S4.1/conv2/conv2.0/Conv_output_0 /segment/S4/S4.0/relu/Relu_output_0_splitncnn_0 /segment/S4/S4.1/Add_output_0
+ReLU                     /segment/S4/S4.1/relu/Relu 1 1 /segment/S4/S4.1/Add_output_0 /segment/S4/S4.1/relu/Relu_output_0
+Split                    splitncnn_6              1 2 /segment/S4/S4.1/relu/Relu_output_0 /segment/S4/S4.1/relu/Relu_output_0_splitncnn_0 /segment/S4/S4.1/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S5_4/S5_4.0/conv1/conv/Conv 1 1 /segment/S4/S4.1/relu/Relu_output_0_splitncnn_1 /segment/S5_4/S5_4.0/conv1/relu/Relu_output_0 0=64 1=3 4=1 5=1 6=36864 9=1
+ConvolutionDepthWise     /segment/S5_4/S5_4.0/dwconv1/dwconv1.0/Conv 1 1 /segment/S5_4/S5_4.0/conv1/relu/Relu_output_0 /segment/S5_4/S5_4.0/dwconv1/dwconv1.0/Conv_output_0 0=384 1=3 3=2 4=1 5=1 6=3456 7=64
+ConvolutionDepthWise     /segment/S5_4/S5_4.0/dwconv2/dwconv2.0/Conv 1 1 /segment/S5_4/S5_4.0/dwconv1/dwconv1.0/Conv_output_0 /segment/S5_4/S5_4.0/dwconv2/dwconv2.2/Relu_output_0 0=384 1=3 4=1 5=1 6=3456 7=384 9=1
+Convolution              /segment/S5_4/S5_4.0/conv2/conv2.0/Conv 1 1 /segment/S5_4/S5_4.0/dwconv2/dwconv2.2/Relu_output_0 /segment/S5_4/S5_4.0/conv2/conv2.0/Conv_output_0 0=128 1=1 5=1 6=49152
+ConvolutionDepthWise     /segment/S5_4/S5_4.0/shortcut/shortcut.0/Conv 1 1 /segment/S4/S4.1/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.0/shortcut/shortcut.0/Conv_output_0 0=64 1=3 3=2 4=1 5=1 6=576 7=64
+Convolution              /segment/S5_4/S5_4.0/shortcut/shortcut.2/Conv 1 1 /segment/S5_4/S5_4.0/shortcut/shortcut.0/Conv_output_0 /segment/S5_4/S5_4.0/shortcut/shortcut.2/Conv_output_0 0=128 1=1 5=1 6=8192
+BinaryOp                 /segment/S5_4/S5_4.0/Add 2 1 /segment/S5_4/S5_4.0/conv2/conv2.0/Conv_output_0 /segment/S5_4/S5_4.0/shortcut/shortcut.2/Conv_output_0 /segment/S5_4/S5_4.0/Add_output_0
+ReLU                     /segment/S5_4/S5_4.0/relu/Relu 1 1 /segment/S5_4/S5_4.0/Add_output_0 /segment/S5_4/S5_4.0/relu/Relu_output_0
+Split                    splitncnn_7              1 2 /segment/S5_4/S5_4.0/relu/Relu_output_0 /segment/S5_4/S5_4.0/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.0/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S5_4/S5_4.1/conv1/conv/Conv 1 1 /segment/S5_4/S5_4.0/relu/Relu_output_0_splitncnn_1 /segment/S5_4/S5_4.1/conv1/relu/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+ConvolutionDepthWise     /segment/S5_4/S5_4.1/dwconv/dwconv.0/Conv 1 1 /segment/S5_4/S5_4.1/conv1/relu/Relu_output_0 /segment/S5_4/S5_4.1/dwconv/dwconv.2/Relu_output_0 0=768 1=3 4=1 5=1 6=6912 7=128 9=1
+Convolution              /segment/S5_4/S5_4.1/conv2/conv2.0/Conv 1 1 /segment/S5_4/S5_4.1/dwconv/dwconv.2/Relu_output_0 /segment/S5_4/S5_4.1/conv2/conv2.0/Conv_output_0 0=128 1=1 5=1 6=98304
+BinaryOp                 /segment/S5_4/S5_4.1/Add 2 1 /segment/S5_4/S5_4.1/conv2/conv2.0/Conv_output_0 /segment/S5_4/S5_4.0/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.1/Add_output_0
+ReLU                     /segment/S5_4/S5_4.1/relu/Relu 1 1 /segment/S5_4/S5_4.1/Add_output_0 /segment/S5_4/S5_4.1/relu/Relu_output_0
+Split                    splitncnn_8              1 2 /segment/S5_4/S5_4.1/relu/Relu_output_0 /segment/S5_4/S5_4.1/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.1/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S5_4/S5_4.2/conv1/conv/Conv 1 1 /segment/S5_4/S5_4.1/relu/Relu_output_0_splitncnn_1 /segment/S5_4/S5_4.2/conv1/relu/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+ConvolutionDepthWise     /segment/S5_4/S5_4.2/dwconv/dwconv.0/Conv 1 1 /segment/S5_4/S5_4.2/conv1/relu/Relu_output_0 /segment/S5_4/S5_4.2/dwconv/dwconv.2/Relu_output_0 0=768 1=3 4=1 5=1 6=6912 7=128 9=1
+Convolution              /segment/S5_4/S5_4.2/conv2/conv2.0/Conv 1 1 /segment/S5_4/S5_4.2/dwconv/dwconv.2/Relu_output_0 /segment/S5_4/S5_4.2/conv2/conv2.0/Conv_output_0 0=128 1=1 5=1 6=98304
+BinaryOp                 /segment/S5_4/S5_4.2/Add 2 1 /segment/S5_4/S5_4.2/conv2/conv2.0/Conv_output_0 /segment/S5_4/S5_4.1/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.2/Add_output_0
+ReLU                     /segment/S5_4/S5_4.2/relu/Relu 1 1 /segment/S5_4/S5_4.2/Add_output_0 /segment/S5_4/S5_4.2/relu/Relu_output_0
+Split                    splitncnn_9              1 2 /segment/S5_4/S5_4.2/relu/Relu_output_0 /segment/S5_4/S5_4.2/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.2/relu/Relu_output_0_splitncnn_1
+Convolution              /segment/S5_4/S5_4.3/conv1/conv/Conv 1 1 /segment/S5_4/S5_4.2/relu/Relu_output_0_splitncnn_1 /segment/S5_4/S5_4.3/conv1/relu/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+ConvolutionDepthWise     /segment/S5_4/S5_4.3/dwconv/dwconv.0/Conv 1 1 /segment/S5_4/S5_4.3/conv1/relu/Relu_output_0 /segment/S5_4/S5_4.3/dwconv/dwconv.2/Relu_output_0 0=768 1=3 4=1 5=1 6=6912 7=128 9=1
+Convolution              /segment/S5_4/S5_4.3/conv2/conv2.0/Conv 1 1 /segment/S5_4/S5_4.3/dwconv/dwconv.2/Relu_output_0 /segment/S5_4/S5_4.3/conv2/conv2.0/Conv_output_0 0=128 1=1 5=1 6=98304
+BinaryOp                 /segment/S5_4/S5_4.3/Add 2 1 /segment/S5_4/S5_4.3/conv2/conv2.0/Conv_output_0 /segment/S5_4/S5_4.2/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.3/Add_output_0
+ReLU                     /segment/S5_4/S5_4.3/relu/Relu 1 1 /segment/S5_4/S5_4.3/Add_output_0 /segment/S5_4/S5_4.3/relu/Relu_output_0
+Split                    splitncnn_10             1 2 /segment/S5_4/S5_4.3/relu/Relu_output_0 /segment/S5_4/S5_4.3/relu/Relu_output_0_splitncnn_0 /segment/S5_4/S5_4.3/relu/Relu_output_0_splitncnn_1
+Reduction                /segment/S5_5/ReduceMean 1 1 /segment/S5_4/S5_4.3/relu/Relu_output_0_splitncnn_1 /segment/S5_5/ReduceMean_output_0 0=3 1=0 -23303=2,1,2 4=1 5=1
+BatchNorm                /segment/S5_5/bn/BatchNormalization 1 1 /segment/S5_5/ReduceMean_output_0 /segment/S5_5/bn/BatchNormalization_output_0 0=128
+Convolution              /segment/S5_5/conv_gap/conv/Conv 1 1 /segment/S5_5/bn/BatchNormalization_output_0 /segment/S5_5/conv_gap/relu/Relu_output_0 0=128 1=1 5=1 6=16384 9=1
+BinaryOp                 /segment/S5_5/Add        2 1 /segment/S5_5/conv_gap/relu/Relu_output_0 /segment/S5_4/S5_4.3/relu/Relu_output_0_splitncnn_0 /segment/S5_5/Add_output_0
+Convolution              /segment/S5_5/conv_last/conv/Conv 1 1 /segment/S5_5/Add_output_0 /segment/S5_5/conv_last/relu/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+Split                    splitncnn_11             1 2 /segment/S5_5/conv_last/relu/Relu_output_0 /segment/S5_5/conv_last/relu/Relu_output_0_splitncnn_0 /segment/S5_5/conv_last/relu/Relu_output_0_splitncnn_1
+ConvolutionDepthWise     /bga/left1/left1.0/Conv  1 1 /detail/S3/S3.2/relu/Relu_output_0_splitncnn_1 /bga/left1/left1.0/Conv_output_0 0=128 1=3 4=1 5=1 6=1152 7=128
+Convolution              /bga/left1/left1.2/Conv  1 1 /bga/left1/left1.0/Conv_output_0 /bga/left1/left1.2/Conv_output_0 0=128 1=1 6=16384
+Convolution              /bga/left2/left2.0/Conv  1 1 /detail/S3/S3.2/relu/Relu_output_0_splitncnn_0 /bga/left2/left2.0/Conv_output_0 0=128 1=3 3=2 4=1 5=1 6=147456
+Pooling                  /bga/left2/left2.2/AveragePool 1 1 /bga/left2/left2.0/Conv_output_0 /bga/left2/left2.2/AveragePool_output_0 0=1 1=3 2=2 3=1 5=1 6=1
+Convolution              /bga/right1/right1.0/Conv 1 1 /segment/S5_5/conv_last/relu/Relu_output_0_splitncnn_1 /bga/right1/right1.0/Conv_output_0 0=128 1=3 4=1 5=1 6=147456
+ConvolutionDepthWise     /bga/right2/right2.0/Conv 1 1 /segment/S5_5/conv_last/relu/Relu_output_0_splitncnn_0 /bga/right2/right2.0/Conv_output_0 0=128 1=3 4=1 5=1 6=1152 7=128
+Convolution              /bga/right2/right2.2/Conv 1 1 /bga/right2/right2.0/Conv_output_0 /bga/Sigmoid_1_output_0 0=128 1=1 6=16384 9=4
+Interp                   /bga/up1/Resize          1 1 /bga/right1/right1.0/Conv_output_0 /bga/up1/Resize_output_0 0=1 1=4.000000e+00 2=4.000000e+00
+Sigmoid                  /bga/Sigmoid             1 1 /bga/up1/Resize_output_0 /bga/Sigmoid_output_0
+BinaryOp                 /bga/Mul                 2 1 /bga/left1/left1.2/Conv_output_0 /bga/Sigmoid_output_0 /bga/Mul_output_0 0=2
+BinaryOp                 /bga/Mul_1               2 1 /bga/left2/left2.2/AveragePool_output_0 /bga/Sigmoid_1_output_0 /bga/Mul_1_output_0 0=2
+Interp                   /bga/up2/Resize          1 1 /bga/Mul_1_output_0 /bga/up2/Resize_output_0 0=1 1=4.000000e+00 2=4.000000e+00
+BinaryOp                 /bga/Add                 2 1 /bga/Mul_output_0 /bga/up2/Resize_output_0 /bga/Add_output_0
+Convolution              /bga/conv/conv.0/Conv    1 1 /bga/Add_output_0 /bga/conv/conv.2/Relu_output_0 0=128 1=3 4=1 5=1 6=147456 9=1
+Convolution              /head/conv/conv/Conv     1 1 /bga/conv/conv.2/Relu_output_0 /head/conv/relu/Relu_output_0 0=1024 1=3 4=1 5=1 6=1179648 9=1
+Convolution              /head/conv_out/conv_out.1/Conv 1 1 /head/conv/relu/Relu_output_0 /head/conv_out/conv_out.1/Conv_output_0 0=19 1=1 5=1 6=19456
+Interp                   /head/conv_out/conv_out.2/Resize 1 1 /head/conv_out/conv_out.1/Conv_output_0 preds 0=2 1=8.000000e+00 2=8.000000e+00

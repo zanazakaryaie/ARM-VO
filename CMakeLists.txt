@@ -1,24 +1,47 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.20)
 
-project(ARM_VO)
+project(ARM_VO VERSION 2.0.0 LANGUAGES CXX)
 
-SET(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}  -O3 -std=c++11 -mfpu=neon -mfloat-abi=hard -funroll-loops -Ofast")
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(OpenCV REQUIRED)
-if(NOT OpenCV_FOUND)
-    message(FATAL_ERROR "OpenCV not found.")
+option(BUILD_TESTS "Build the tests" OFF)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+if(BUILD_TESTS)
+    enable_testing()
 endif()
 
-find_package(OpenMP REQUIRED)
-if(OpenMP_FOUND)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-else()
-    message(WARNING "OpenMP not found.")
-endif()
+set(ARMVO_OPENCV_COMPONENTS core imgproc video highgui features2d calib3d imgcodecs)
+find_package(OpenCV REQUIRED COMPONENTS ${ARMVO_OPENCV_COMPONENTS})
 
-include_directories(include)
+add_subdirectory(lib)
+add_subdirectory(tools)
+add_subdirectory(cli)
 
-file(GLOB SOURCES "src/*.cpp")
-add_executable(ARM_VO ${SOURCES})
-target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+set(ARMVO_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/armvo")
+
+configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/armvoConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/armvoConfig.cmake"
+    INSTALL_DESTINATION "${ARMVO_INSTALL_CMAKEDIR}"
+)
+
+write_basic_package_version_file(
+    "${PROJECT_BINARY_DIR}/armvoConfigVersion.cmake"
+    VERSION "${PROJECT_VERSION}"
+    COMPATIBILITY SameMajorVersion
+)
+
+install(EXPORT armvoTargets
+    NAMESPACE armvo::
+    DESTINATION "${ARMVO_INSTALL_CMAKEDIR}"
+)
+
+install(FILES
+    "${PROJECT_BINARY_DIR}/armvoConfig.cmake"
+    "${PROJECT_BINARY_DIR}/armvoConfigVersion.cmake"
+    DESTINATION "${ARMVO_INSTALL_CMAKEDIR}"
+)
