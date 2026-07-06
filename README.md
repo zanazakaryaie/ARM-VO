@@ -2,11 +2,12 @@
 
 ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. It is highly optimized for ARM CPUs as it uses NEON C intrinsics and multi-threading to accelerate keypoint detection and tracking. 
 
+## Results on KITTI dataset
 | Sequence 05 | Sequence 07 | Sequence 10 |
 |:---:|:---:|:---:|
 | <img src="docs/assets/Sequence5.png" width="100%"> | <img src="docs/assets/Sequence7.png" width="100%"> | <img src="docs/assets/Sequence10.png" width="100%"> |
 
-## Changelog (compared to version 1)
+## What's new in v2?
 - Results are deterministic
 - Scale estimation is more accurate (but slower)
 - Camera pitch angle is no longer required (providing camera height is enough)
@@ -47,6 +48,17 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
   sudo ldconfig
   ```
 
+- Catch2 (only if you want to build tests as well)
+  ```bash
+  git clone --branch v2.13.10 --depth 1 https://github.com/catchorg/Catch2.git
+  cd Catch2
+  mkdir build && cd build
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=/usr/local -DCATCH_BUILD_TESTING=OFF -DCATCH_INSTALL_DOCS=OFF -DCATCH_INSTALL_HELPERS=ON ..
+  make -j$(nproc)
+  sudo make install
+  sudo ldconfig
+  ```
+
 ## How to build?
 ```bash
 git clone https://github.com/zanazakaryaie/ARM-VO.git
@@ -57,7 +69,13 @@ make -j$(nproc)
 sudo make install
 sudo ldconfig
 ```
-## Test on KITTI dataset
+### Build Options
+
+| Option | Default | Description |
+|---|---:|---|
+| `BUILD_TESTS` | `OFF` | Build unit tests |
+
+## Run on KITTI dataset
 Download the odometry dataset from [here](https://s3.eu-central-1.amazonaws.com/avg-kitti/data_odometry_color.zip).
 Open a terminal, navigate to build/cli folder and run:
 ```bash
@@ -103,6 +121,28 @@ target_link_libraries(my_app PRIVATE armvo::ArmVO armvo::ArmVOtools)
   publisher={Springer}
 }
 ```
+
+## For Developers
+
+### Repository Layout
+
+```text
+.
+├── cli/             Command-line tools for running ARM-VO
+├── cmake/           CMake scripts
+├── docs/            Documentation and README assets
+├── lib/             Core ARM-VO implementation
+├── model/           BiseNetv2 model
+├── tools/           Utilities for visualization, evaluation, etc.
+└── CMakeLists.txt   Main CMake build file
+```
+
+### Running Tests
+If you build ARM-VO with `-DBUILD_TESTS=ON`, you can run tests from the repo root by:
+```bash
+ ctest --test-dir build --output-on-failure
+```
+Alternatively, you can navigate to `build/lib/tests` or `build/tools/tests` and run `test_*` executables one by one.
 
 ## TODOs
 - Setup CI
