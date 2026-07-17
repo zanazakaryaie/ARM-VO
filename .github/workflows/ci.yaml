@@ -1,0 +1,57 @@
+name: ARM-VO CI Pipeline
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Install dependencies
+        run: |
+          echo "::group::CMake and Build Tools"
+          sudo apt-get update
+          sudo apt install -y --no-install-recommends build-essential git cmake pkg-config
+          echo "::endgroup::"
+
+          echo "::group::OpenCV"
+          sudo apt install -y --no-install-recommends libopencv-dev
+          echo "::endgroup::"
+
+          echo "::group::ncnn"
+          git clone --recursive --depth 1 --branch 20241226 https://github.com/Tencent/ncnn.git
+          cd ncnn
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=/usr/local -DNCNN_BUILD_TESTS=OFF -DNCNN_BUILD_EXAMPLES=OFF -DNCNN_BUILD_BENCHMARK=OFF -DNCNN_THREADS=ON -DNCNN_OPENMP=OFF -DNCNN_VULKAN=OFF  -DNCNN_ENABLE_LTO=ON ..
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ../../
+          echo "::endgroup::"
+
+          echo "::group::Catchv2"
+          git clone --branch v2.13.10 --depth 1 https://github.com/catchorg/Catch2.git
+          cd Catch2
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=/usr/local -DCATCH_BUILD_TESTING=OFF -DCATCH_INSTALL_DOCS=OFF -DCATCH_INSTALL_HELPERS=ON ..
+          make -j$(nproc)
+          sudo make install
+          sudo ldconfig
+          cd ../../
+          echo "::endgroup::"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON ..
+          make -j$(nproc)
+
+      - name: Run tests
+        run: ctest --test-dir build --output-on-failure
