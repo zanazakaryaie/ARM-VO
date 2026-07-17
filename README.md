@@ -145,7 +145,6 @@ If you build ARM-VO with `-DBUILD_TESTS=ON`, you can run tests from the repo roo
 Alternatively, you can navigate to `build/lib/tests` or `build/tools/tests` and run `test_*` executables one by one.
 
 ## TODOs
-- Setup CI
 - Add TensorRT backend
 - Increase test coverage
 - Add ROS 1 and ROS 2 examples
