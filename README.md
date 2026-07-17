@@ -53,7 +53,7 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
   git clone --branch v2.13.10 --depth 1 https://github.com/catchorg/Catch2.git
   cd Catch2
   mkdir build && cd build
-  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=/usr/local -DCATCH_BUILD_TESTING=OFF -DCATCH_INSTALL_DOCS=OFF -DCATCH_INSTALL_HELPERS=ON ..
+  cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_STANDARD=17 -DCMAKE_INSTALL_PREFIX=/usr/local -DCATCH_BUILD_STATIC_LIBRARY=ON -DCATCH_BUILD_TESTING=OFF -DCATCH_INSTALL_DOCS=OFF -DCATCH_INSTALL_HELPERS=ON ..
   make -j$(nproc)
   sudo make install
   sudo ldconfig
