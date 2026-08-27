@@ -40,36 +40,36 @@ void setMaskValue(cv::Mat& mask, const armvo::Keypoint& keypoint, uint8_t value)
 
 } // namespace
 
-TEST_CASE("KeypointSampler creates non-overlapping image grid ROIs")
+TEST_CASE("NonOverlappingGrid reports the number of grid cells")
 {
-    const std::vector<cv::Rect> rois = armvo::KeypointSampler::createROIs(10, 12, 2, 3);
+    armvo::NonOverlappingGrid grid(10, 12, 2, 3);
 
-    REQUIRE(rois.size() == 6);
-    CHECK(rois[0] == cv::Rect(0, 0, 4, 5));
-    CHECK(rois[1] == cv::Rect(4, 0, 4, 5));
-    CHECK(rois[2] == cv::Rect(8, 0, 4, 5));
-    CHECK(rois[3] == cv::Rect(0, 5, 4, 5));
-    CHECK(rois[4] == cv::Rect(4, 5, 4, 5));
-    CHECK(rois[5] == cv::Rect(8, 5, 4, 5));
+    CHECK(grid.getNumCells() == 6);
 }
 
-TEST_CASE("KeypointSampler creates ROIs that cover non-divisible dimensions")
+TEST_CASE("NonOverlappingGrid assigns points to image cells")
 {
-    const std::vector<cv::Rect> rois = armvo::KeypointSampler::createROIs(10, 11, 3, 2);
+    armvo::NonOverlappingGrid grid(10, 12, 2, 3);
 
-    REQUIRE(rois.size() == 6);
-    CHECK(rois[0] == cv::Rect(0, 0, 5, 3));
-    CHECK(rois[1] == cv::Rect(5, 0, 6, 3));
-    CHECK(rois[2] == cv::Rect(0, 3, 5, 3));
-    CHECK(rois[3] == cv::Rect(5, 3, 6, 3));
-    CHECK(rois[4] == cv::Rect(0, 6, 5, 4));
-    CHECK(rois[5] == cv::Rect(5, 6, 6, 4));
+    CHECK(grid.findCellId({0.0f, 0.0f, 1.0f}) == 0);
+    CHECK(grid.findCellId({3.0f, 4.0f, 1.0f}) == 0);
+    CHECK(grid.findCellId({4.0f, 0.0f, 1.0f}) == 1);
+    CHECK(grid.findCellId({8.0f, 0.0f, 1.0f}) == 2);
+    CHECK(grid.findCellId({0.0f, 5.0f, 1.0f}) == 3);
+    CHECK(grid.findCellId({11.0f, 9.0f, 1.0f}) == 5);
 }
 
-TEST_CASE("KeypointSampler returns no ROIs when grid is denser than image")
+TEST_CASE("NonOverlappingGrid assigns points in non-divisible image dimensions")
 {
-    CHECK(armvo::KeypointSampler::createROIs(4, 8, 5, 2).empty());
-    CHECK(armvo::KeypointSampler::createROIs(4, 8, 2, 9).empty());
+    armvo::NonOverlappingGrid grid(10, 11, 3, 2);
+
+    CHECK(grid.findCellId({0.0f, 0.0f, 1.0f}) == 0);
+    CHECK(grid.findCellId({5.0f, 3.0f, 1.0f}) == 0);
+    CHECK(grid.findCellId({6.0f, 3.0f, 1.0f}) == 1);
+    CHECK(grid.findCellId({0.0f, 4.0f, 1.0f}) == 2);
+    CHECK(grid.findCellId({6.0f, 4.0f, 1.0f}) == 3);
+    CHECK(grid.findCellId({0.0f, 7.0f, 1.0f}) == 4);
+    CHECK(grid.findCellId({10.0f, 9.0f, 1.0f}) == 5);
 }
 
 TEST_CASE("KeypointSampler samples masked keypoints with farthest point sampling")
@@ -114,16 +114,32 @@ TEST_CASE("KeypointSampler samples equally from ROIs and favors static keypoints
     setMaskValue(staticMask, keypoints[2], 255);
     setMaskValue(staticMask, keypoints[5], 255);
 
-    const std::vector<cv::Rect> rois = {
-        cv::Rect(0, 0, 10, 10),
-        cv::Rect(10, 0, 10, 10),
-    };
+    armvo::NonOverlappingGrid grid(10, 20, 1, 2);
 
     armvo::KeypointSampler sampler;
-    const std::vector<cv::Point2f> sampled = sampler.run(keypoints, rois, staticMask, 4);
+    const std::vector<cv::Point2f> sampled = sampler.run(keypoints, grid, staticMask, 4);
 
     REQUIRE(sampled.size() == 4);
     CHECK(sortedLocations(sampled) == std::vector<Location>{{2, 1}, {3, 1}, {11, 1}, {12, 1}});
+}
+
+TEST_CASE("KeypointSampler grid sampling uses signed response scores")
+{
+    const std::vector<armvo::Keypoint> keypoints = {
+        {1.0f, 1.0f, 10.0f},
+        {2.0f, 1.0f, -100.0f},
+        {11.0f, 1.0f, 20.0f},
+        {12.0f, 1.0f, -200.0f},
+    };
+
+    cv::Mat staticMask = makeMask(20, 10);
+    armvo::NonOverlappingGrid grid(10, 20, 1, 2);
+
+    armvo::KeypointSampler sampler;
+    const std::vector<cv::Point2f> sampled = sampler.run(keypoints, grid, staticMask, 2);
+
+    REQUIRE(sampled.size() == 2);
+    CHECK(sortedLocations(sampled) == std::vector<Location>{{1, 1}, {11, 1}});
 }
 
 TEST_CASE("KeypointSampler returns empty output for empty inputs")
@@ -131,17 +147,16 @@ TEST_CASE("KeypointSampler returns empty output for empty inputs")
     const std::vector<armvo::Keypoint> keypoints = {
         {1.0f, 1.0f, 10.0f},
     };
-    const std::vector<cv::Rect> rois = {
-        cv::Rect(0, 0, 5, 5),
-    };
     const cv::Mat mask = makeMask(5, 5, 255);
+    armvo::NonOverlappingGrid grid(5, 5, 1, 1);
+    armvo::NonOverlappingGrid denseGrid(5, 5, 2, 2);
 
     armvo::KeypointSampler sampler;
 
     CHECK(sampler.run({}, mask, 1).empty());
     CHECK(sampler.run(keypoints, cv::Mat(), 1).empty());
     CHECK(sampler.run(keypoints, mask, 0).empty());
-    CHECK(sampler.run({}, rois, mask, 1).empty());
-    CHECK(sampler.run(keypoints, std::vector<cv::Rect>{}, mask, 1).empty());
-    CHECK(sampler.run(keypoints, rois, mask, 0).empty());
+    CHECK(sampler.run({}, grid, mask, 1).empty());
+    CHECK(sampler.run(keypoints, grid, mask, 0).empty());
+    CHECK(sampler.run(keypoints, denseGrid, mask, 1).empty());
 }

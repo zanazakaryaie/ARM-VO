@@ -111,6 +111,33 @@ private:
 };
 
 
+class NonOverlappingGrid::Impl
+{
+    uint32_t mHeight;
+    uint32_t mWidth;
+    uint32_t mNumRows;
+    uint32_t mNumCols;
+
+public:
+
+    Impl(uint32_t height, uint32_t width, uint32_t numRows, uint32_t numCols)
+        : mHeight(height), mWidth(width), mNumRows(numRows), mNumCols(numCols)
+    {
+    }
+
+    uint32_t getNumCells() const
+    {
+        return mNumRows * mNumCols;
+    }
+
+    uint32_t findCellId(const Keypoint& kpt) const
+    {
+        const uint32_t cellY = (kpt.y * mNumRows)/mHeight;
+        const uint32_t cellX = (kpt.x * mNumCols)/mWidth;
+        return cellY * mNumCols + cellX;
+    }
+};
+
 class KeypointSampler::Impl
 {
     std::mt19937 mRNG{42};
@@ -118,33 +145,6 @@ class KeypointSampler::Impl
 public:
 
     Impl() = default;
-
-    static std::vector<cv::Rect> createROIs(uint32_t height, uint32_t width, uint32_t numRows, uint32_t numCols)
-    {
-        if (numRows > height || numCols > width)
-        {
-            return {};
-        }
-
-        std::vector<cv::Rect> ROIs;
-        ROIs.reserve(numRows * numCols);
-
-        for (uint32_t celly=0; celly<numRows; celly++)
-        {
-            const uint32_t startRow = (celly*height)/numRows;
-            const uint32_t endRow = ((celly+1)*height)/numRows;
-
-            for (uint32_t cellx=0; cellx<numCols; cellx++)
-            {
-                const uint32_t startCol = (cellx*width)/numCols;
-                const uint32_t endCol = ((cellx+1)*width)/numCols;
-
-                ROIs.emplace_back(startCol, startRow, endCol - startCol, endRow - startRow);
-            }
-        }
-
-        return ROIs;
-    }
 
     std::vector<cv::Point2f> run(const std::vector<Keypoint>& keypoints, const cv::Mat& mask, uint32_t maxNumPoints)
     {
@@ -167,23 +167,26 @@ public:
 
         std::vector<cv::Point2f> sampledPoints = FarthestPointSampler::run(pointsInROI, maxNumPoints);
 
-        // To get identical results in each run (the detector may shuffle the points because its multi-threaded)
-        shufflePointsDeterministically(sampledPoints);
+        shufflePointsDeterministically(sampledPoints); // shuffle (in a determinstic way) to de-bias RANSAC/USAC
 
         return sampledPoints;
     }
 
-    // We assume that ROIs are non-overlapping and sampling is done equally
-    std::vector<cv::Point2f> run(const std::vector<Keypoint>& keypoints, const std::vector<cv::Rect>& ROIs, const cv::Mat& staticMask, uint32_t maxNumPoints)
+    std::vector<cv::Point2f> run(const std::vector<Keypoint>& keypoints, NonOverlappingGrid& grid, const cv::Mat& staticMask, uint32_t maxNumPoints)
     {
-        if (keypoints.empty() || ROIs.empty() || maxNumPoints == 0)
+        const uint32_t numCells = grid.getNumCells();
+        if (keypoints.empty() || numCells == 0 || maxNumPoints == 0)
         {
             return {};
         }
 
         maxNumPoints = std::min(static_cast<uint32_t>(keypoints.size()), maxNumPoints);
 
-        const uint32_t numPointsPerCell = maxNumPoints / ROIs.size();
+        const uint32_t numPointsPerCell = maxNumPoints / numCells;
+        if (numPointsPerCell == 0)
+        {
+            return {};
+        }
 
         std::vector<cv::Point2f> sampledPoints;
         sampledPoints.reserve(maxNumPoints);
@@ -191,28 +194,25 @@ public:
         constexpr float staticBoost = 5.f;
         constexpr float dynamicPenalty = 2.f;
 
-        std::vector<Keypoint> pointsInROI;
-        for (const auto& roi : ROIs)
+        std::vector<std::vector<Keypoint>> buckets(numCells);
+        for (const Keypoint& kpt : keypoints)
         {
-            for (const auto& point : keypoints)
-            {
-                if (isInside(point, roi))
-                {
-                    const bool isStatic = staticMask.at<uchar>(static_cast<int>(point.y), static_cast<int>(point.x)) == 255;
-                    const float modifiedScore = point.score + (isStatic ? staticBoost : -dynamicPenalty);
-                    pointsInROI.emplace_back(point.x, point.y, modifiedScore);
-                }
-            }
-            keepStrongestKeypoints(pointsInROI, numPointsPerCell);
-            for (const auto& point : pointsInROI)
-            {
-                sampledPoints.emplace_back(point.x, point.y);
-            }
-            pointsInROI.clear();
+            const uint32_t cellId = grid.findCellId(kpt);
+            const bool isStatic = staticMask.at<uchar>(static_cast<int>(kpt.y), static_cast<int>(kpt.x)) == 255;
+            const float modifiedScore = kpt.score + (isStatic ? staticBoost : -dynamicPenalty);
+            buckets[cellId].emplace_back(kpt.x, kpt.y, modifiedScore);
         }
 
-        // To get identical results in each run (the detector may shuffle the points because its multi-threaded)
-        shufflePointsDeterministically(sampledPoints);
+        for (std::vector<Keypoint>& bucket : buckets)
+        {
+            auto strongEnd = sortStrongestKeypoints(bucket, numPointsPerCell);
+            for (auto it = bucket.begin(); it != strongEnd; ++it)
+            {
+                sampledPoints.emplace_back(it->x, it->y);
+            }
+        }
+
+        shufflePointsDeterministically(sampledPoints); // shuffle (in a determinstic way) to de-bias RANSAC/USAC
 
         return sampledPoints;
     }
@@ -221,19 +221,24 @@ private:
 
     static void keepStrongestKeypoints(std::vector<Keypoint>& keypoints, std::size_t desiredNumberOfKeypoints)
     {
-        if (keypoints.size() > desiredNumberOfKeypoints)
+        auto nth = sortStrongestKeypoints(keypoints, desiredNumberOfKeypoints);
+        if (nth != keypoints.end())
         {
-            std::vector<Keypoint>::iterator nth = keypoints.begin() + desiredNumberOfKeypoints;
-            std::nth_element(keypoints.begin(), nth, keypoints.end(), [](const Keypoint& a, const Keypoint& b) {
-                return std::abs(a.score) > std::abs(b.score);
-            });
             keypoints.erase(nth, keypoints.end());
         }
     }
 
-    static bool isInside(const Keypoint& pt, const cv::Rect& roi) noexcept
+    static std::vector<Keypoint>::iterator sortStrongestKeypoints(std::vector<Keypoint>& keypoints, std::size_t desiredNumberOfKeypoints)
     {
-        return (pt.x >= roi.x) && (pt.x < roi.x + roi.width) && (pt.y >= roi.y) && (pt.y < roi.y + roi.height);
+        if (keypoints.size() <= desiredNumberOfKeypoints)
+        {
+            return keypoints.end();
+        }
+        std::vector<Keypoint>::iterator nth = keypoints.begin() + desiredNumberOfKeypoints;
+        std::nth_element(keypoints.begin(), nth, keypoints.end(), [](const Keypoint& a, const Keypoint& b) {
+            return a.score > b.score;
+        });
+        return nth;
     }
 
     void shufflePointsDeterministically(std::vector<cv::Point2f>& pts)
@@ -254,14 +259,24 @@ private:
     }
 };
 
+NonOverlappingGrid::NonOverlappingGrid(uint32_t height, uint32_t width, uint32_t numRows, uint32_t numCols)
+{
+    mImpl = std::make_shared<Impl>(height, width, numRows, numCols);
+}
+
+uint32_t NonOverlappingGrid::getNumCells()
+{
+    return mImpl->getNumCells();
+}
+
+uint32_t NonOverlappingGrid::findCellId(const Keypoint& keypoint)
+{
+    return mImpl->findCellId(keypoint);
+}
+
 KeypointSampler::KeypointSampler()
 {
     mImpl = std::make_shared<Impl>();
-}
-
-std::vector<cv::Rect> KeypointSampler::createROIs(uint32_t height, uint32_t width, uint32_t numRows, uint32_t numCols)
-{
-    return Impl::createROIs(height, width, numRows, numCols);
 }
 
 std::vector<cv::Point2f> KeypointSampler::run(const std::vector<Keypoint>& keypoints, const cv::Mat& mask, uint32_t maxNumPoints)
@@ -269,9 +284,9 @@ std::vector<cv::Point2f> KeypointSampler::run(const std::vector<Keypoint>& keypo
     return mImpl->run(keypoints, mask, maxNumPoints);
 }
 
-std::vector<cv::Point2f> KeypointSampler::run(const std::vector<Keypoint>& keypoints, const std::vector<cv::Rect>& ROIs, const cv::Mat& mask, uint32_t maxNumPoints)
+std::vector<cv::Point2f> KeypointSampler::run(const std::vector<Keypoint>& keypoints, NonOverlappingGrid& grid, const cv::Mat& mask, uint32_t maxNumPoints)
 {
-    return mImpl->run(keypoints, ROIs, mask, maxNumPoints);
+    return mImpl->run(keypoints, grid, mask, maxNumPoints);
 }
 
 }
