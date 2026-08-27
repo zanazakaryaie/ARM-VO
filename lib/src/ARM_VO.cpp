@@ -27,7 +27,7 @@ class ArmVo::Impl
     std::unique_ptr<ISemanticSegmentor> mSemanticSegmentor;
     std::unique_ptr<ScaleEstimator> mScaleEstimator;
     cv::Size mCameraResolution;
-    std::vector<cv::Rect> mImageCells;
+    std::unique_ptr<NonOverlappingGrid> mImageCells;
     std::vector<cv::Point2f> mPreviousKeypoints;
     Pose mCurrentPose;
     static const uint32_t kMinRequiredKeypoints = 200;
@@ -77,7 +77,7 @@ public:
         }
 
         mKeypointTracker->setPreviousFrame(src);
-        mImageCells = KeypointSampler::createROIs(src.rows, src.cols, mConfig.keypointDetector.numberOfImageGridRows, mConfig.keypointDetector.numberOfImageGridCols);
+        mImageCells = std::make_unique<NonOverlappingGrid>(src.rows, src.cols, mConfig.keypointDetector.numberOfImageGridRows, mConfig.keypointDetector.numberOfImageGridCols);
 
         cv::Mat segmentationMap;
         if (mSemanticSegmentor->runsOnCoProcessor())
@@ -95,7 +95,7 @@ public:
         }
 
         cv::Mat staticMask = mSemanticSegmentor->getStaticMask(segmentationMap);
-        mPreviousKeypoints = mKeypointSampler->run(keypoints, mImageCells, staticMask, mConfig.keypointDetector.maxNumberOfPoints);
+        mPreviousKeypoints = mKeypointSampler->run(keypoints, *mImageCells, staticMask, mConfig.keypointDetector.maxNumberOfPoints);
 
         cv::Mat roadMask = mSemanticSegmentor->getRoadMask(segmentationMap);
         mScaleEstimator->initialize(keypoints, roadMask);
@@ -227,7 +227,7 @@ public:
 
         // Prepare for next frame
         cv::Mat staticMask = mSemanticSegmentor->getStaticMask(segmentationMap);
-        mPreviousKeypoints = mKeypointSampler->run(keypoints, mImageCells, staticMask, mConfig.keypointDetector.maxNumberOfPoints);
+        mPreviousKeypoints = mKeypointSampler->run(keypoints, *mImageCells, staticMask, mConfig.keypointDetector.maxNumberOfPoints);
         mKeypointTracker->step();
         mScaleEstimator->step();
 
