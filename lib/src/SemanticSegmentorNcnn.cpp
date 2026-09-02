@@ -136,24 +136,6 @@ public:
         return output;
     }
 
-    static cv::Mat getRoadMask(const cv::Mat& segmentationMap)
-    {
-        constexpr int ROAD_LABEL = 0;
-        return segmentationMap == ROAD_LABEL;
-    }
-
-    static cv::Mat getStaticMask(const cv::Mat& segmentationMap)
-    {
-        cv::Mat mask(segmentationMap.size(), CV_8UC1);
-        const uint8_t* const src = segmentationMap.ptr<uint8_t>();
-        uint8_t* dst = mask.ptr<uint8_t>();
-        for (uint32_t i=0; i<mask.total(); i++)
-        {
-            dst[i] = (src[i] <= 10 ? 255 : 0);
-        }
-        return mask;
-    }
-
 private:
 
     static fs::path modelDir()
@@ -243,16 +225,6 @@ bool SemanticSegmentorNcnn::runsOnCoProcessor()
 cv::Mat SemanticSegmentorNcnn::segment(const cv::Mat& frame, PixelFormat pixelFormat)
 {
     return mImpl->segment(frame, pixelFormat);
-}
-
-cv::Mat SemanticSegmentorNcnn::getRoadMask(const cv::Mat& segmentationMap)
-{
-    return Impl::getRoadMask(segmentationMap);
-}
-
-cv::Mat SemanticSegmentorNcnn::getStaticMask(const cv::Mat& segmentationMap)
-{
-    return Impl::getStaticMask(segmentationMap);
 }
 
 }

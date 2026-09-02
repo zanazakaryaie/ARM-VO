@@ -4,19 +4,20 @@
 #include <opencv2/imgproc.hpp>
 
 #include <cstdint>
+#include <memory>
 #include <vector>
 
-#include "SemanticSegmentorNcnn.hpp"
+#include "SemanticSegmentorFactory.hpp"
 
 namespace
 {
 
 constexpr int kNumCityscapesClasses = 19;
 
-armvo::SemanticSegmentorNcnn& segmentor()
+armvo::ISemanticSegmentor& segmentor()
 {
-    static armvo::SemanticSegmentorNcnn instance;
-    return instance;
+    static std::unique_ptr<armvo::ISemanticSegmentor> instance = armvo::SemanticSegmentorFactory::create();
+    return *instance;
 }
 
 cv::Mat makeGrayFrame()
@@ -97,7 +98,7 @@ std::vector<uint8_t> rowValues(const cv::Mat& mask)
 
 } // namespace
 
-TEST_CASE("SemanticSegmentorNcnn creates road and static masks from label maps")
+TEST_CASE("SemanticSegmentor creates road and static masks from label maps")
 {
     const cv::Mat labels = (cv::Mat_<uint8_t>(1, 8) << 0, 1, 2, 10, 11, 12, 18, 0);
 
@@ -113,7 +114,7 @@ TEST_CASE("SemanticSegmentorNcnn creates road and static masks from label maps")
     CHECK(rowValues(staticMask) == std::vector<uint8_t>{255, 255, 255, 255, 0, 0, 0, 255});
 }
 
-TEST_CASE("SemanticSegmentorNcnn returns an empty map for non-contiguous frames")
+TEST_CASE("SemanticSegmentor returns an empty map for non-contiguous frames")
 {
     cv::Mat padded(96, 168, CV_8UC1, cv::Scalar(0));
     cv::Mat roi = padded(cv::Rect(0, 0, 160, 96));
@@ -125,7 +126,7 @@ TEST_CASE("SemanticSegmentorNcnn returns an empty map for non-contiguous frames"
     CHECK(segmentationMap.empty());
 }
 
-TEST_CASE("SemanticSegmentorNcnn segments continuous frames")
+TEST_CASE("SemanticSegmentor segments continuous frames")
 {
     SECTION("gray input")
     {

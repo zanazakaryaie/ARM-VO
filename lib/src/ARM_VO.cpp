@@ -9,7 +9,7 @@
 #include "KeypointTracker.hpp"
 #include "Geometry.hpp"
 #include "KeypointSampler.hpp"
-#include "SemanticSegmentorNcnn.hpp"
+#include "SemanticSegmentorFactory.hpp"
 
 #include <opencv2/imgproc.hpp>
 
@@ -48,7 +48,7 @@ public:
         mKeypointTracker = std::make_unique<KeypointTracker>(config.keypointTracker);
         mGRIC = std::make_unique<GRIC>();
         mMotionEstimator = std::make_unique<MotionEstimator>(config.camera.intrinsics);
-        mSemanticSegmentor = std::make_unique<SemanticSegmentorNcnn>();
+        mSemanticSegmentor = SemanticSegmentorFactory::create();
         mScaleEstimator = std::make_unique<ScaleEstimator>(config.camera, config.maxVehicleSpeed, mKeypointTracker);
     }
 

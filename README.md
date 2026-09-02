@@ -48,7 +48,11 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
   sudo ldconfig
   ```
 
-- Catch2 (only if you want to build tests as well)
+- TensorRT 8.6 (optional, preferred over ncnn automatically when found)
+  
+  ARM-VO will run faster if TensorRT is available
+
+- Catch2 v2 (only if you want to build tests as well)
   ```bash
   git clone --branch v2.13.10 --depth 1 https://github.com/catchorg/Catch2.git
   cd Catch2
@@ -145,7 +149,6 @@ If you build ARM-VO with `-DBUILD_TESTS=ON`, you can run tests from the repo roo
 Alternatively, you can navigate to `build/lib/tests` or `build/tools/tests` and run `test_*` executables one by one.
 
 ## TODOs
-- Add TensorRT backend
 - Increase test coverage
 - Add ROS 1 and ROS 2 examples
 - Add redundancy for scale estimation (e.g. object priors)
