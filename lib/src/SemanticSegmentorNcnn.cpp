@@ -52,7 +52,7 @@ public:
 #if NCNN_VULKAN
         mRunsOnGPU = ncnn::get_gpu_count() > 0;
 #endif
-        mNet.opt = createFastestOption();
+        mNet.opt = createRuntimeOption();
 
         fs::path dir = modelDir();
 
@@ -99,6 +99,19 @@ public:
 
         ncnn::Mat out;
         if (ex.extract(MODEL_OUTPUT_NAME.c_str(), out) != 0)
+        {
+            return cv::Mat();
+        }
+
+        if (out.elempack != 1)
+        {
+            ncnn::Mat unpacked;
+            ncnn::convert_packing(out, unpacked, 1, mNet.opt);
+            out = unpacked;
+        }
+
+        if (out.dims != 3 || out.w != modelOutputWidth || out.h != modelOutputHeight ||
+            out.c != MODEL_OUTPUT_CHANNELS || out.elembits() != 32)
         {
             return cv::Mat();
         }
@@ -169,7 +182,7 @@ private:
         return type;
     }
 
-    static ncnn::Option createFastestOption()
+    static ncnn::Option createRuntimeOption()
     {
         ncnn::Option opt;
 
@@ -187,7 +200,8 @@ private:
         opt.use_int8_inference = true;
         opt.use_a53_a55_optimized_kernel = ncnn::is_current_thread_running_on_a53_a55();
 
-        opt.use_bf16_storage = ncnn::cpu_support_arm_bf16() || ncnn::cpu_support_x86_avx512_bf16();
+        // The argmax below reads FP32 logits from the output blob.
+        opt.use_bf16_storage = false;
 
 #if NCNN_VULKAN
         if (ncnn::get_gpu_count() > 0)
