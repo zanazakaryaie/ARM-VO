@@ -52,7 +52,7 @@ public:
 #if NCNN_VULKAN
         mRunsOnGPU = ncnn::get_gpu_count() > 0;
 #endif
-        mNet.opt = createFastestOption();
+        mNet.opt = createRuntimeOption();
 
         fs::path dir = modelDir();
 
@@ -103,6 +103,19 @@ public:
             return cv::Mat();
         }
 
+        if (out.elempack != 1)
+        {
+            ncnn::Mat unpacked;
+            ncnn::convert_packing(out, unpacked, 1, mNet.opt);
+            out = unpacked;
+        }
+
+        if (out.dims != 3 || out.w != modelOutputWidth || out.h != modelOutputHeight ||
+            out.c != MODEL_OUTPUT_CHANNELS || out.elembits() != 32)
+        {
+            return cv::Mat();
+        }
+
         // Argmax
         for (int y=0; y<modelOutputHeight; y++)
         {
@@ -134,24 +147,6 @@ public:
         cv::resize(mSegmentationMap, output, frame.size(), 0, 0, cv::INTER_NEAREST);
 
         return output;
-    }
-
-    static cv::Mat getRoadMask(const cv::Mat& segmentationMap)
-    {
-        constexpr int ROAD_LABEL = 0;
-        return segmentationMap == ROAD_LABEL;
-    }
-
-    static cv::Mat getStaticMask(const cv::Mat& segmentationMap)
-    {
-        cv::Mat mask(segmentationMap.size(), CV_8UC1);
-        const uint8_t* const src = segmentationMap.ptr<uint8_t>();
-        uint8_t* dst = mask.ptr<uint8_t>();
-        for (uint32_t i=0; i<mask.total(); i++)
-        {
-            dst[i] = (src[i] <= 10 ? 255 : 0);
-        }
-        return mask;
     }
 
 private:
@@ -187,7 +182,7 @@ private:
         return type;
     }
 
-    static ncnn::Option createFastestOption()
+    static ncnn::Option createRuntimeOption()
     {
         ncnn::Option opt;
 
@@ -205,7 +200,8 @@ private:
         opt.use_int8_inference = true;
         opt.use_a53_a55_optimized_kernel = ncnn::is_current_thread_running_on_a53_a55();
 
-        opt.use_bf16_storage = ncnn::cpu_support_arm_bf16() || ncnn::cpu_support_x86_avx512_bf16();
+        // The argmax below reads FP32 logits from the output blob.
+        opt.use_bf16_storage = false;
 
 #if NCNN_VULKAN
         if (ncnn::get_gpu_count() > 0)
@@ -243,16 +239,6 @@ bool SemanticSegmentorNcnn::runsOnCoProcessor()
 cv::Mat SemanticSegmentorNcnn::segment(const cv::Mat& frame, PixelFormat pixelFormat)
 {
     return mImpl->segment(frame, pixelFormat);
-}
-
-cv::Mat SemanticSegmentorNcnn::getRoadMask(const cv::Mat& segmentationMap)
-{
-    return Impl::getRoadMask(segmentationMap);
-}
-
-cv::Mat SemanticSegmentorNcnn::getStaticMask(const cv::Mat& segmentationMap)
-{
-    return Impl::getStaticMask(segmentationMap);
 }
 
 }

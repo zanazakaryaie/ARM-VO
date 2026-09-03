@@ -22,7 +22,9 @@ The following steps show how to use a model that takes inputs of size 416x832:
 ```bash
 pip install onnxruntime
 cd build/cli
-./convert_model --model=path/to/model.onnx --height=416 --width=832
+./convert_onnx2ncnn --model=path/to/model.onnx --height=416 --width=832
 ```
 
 and then rebuild ARM-VO.
+
+**Note** that the **TensorRT** backend uses a fixed shape. This limitation will be mitigated in a near future.

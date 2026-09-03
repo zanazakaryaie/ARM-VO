@@ -1,20 +1,21 @@
 #pragma once
 
 #include <memory>
+
 #include "SemanticSegmentorBase.hpp"
 #include "Types.hpp"
 
 namespace armvo
 {
 
-/// @brief NCNN-backed semantic segmentor
-class SemanticSegmentorNcnn final : public SemanticSegmentorBase
+/// @brief TensorRT-backed semantic segmentor
+class SemanticSegmentorTensorRT final : public SemanticSegmentorBase
 {
 public:
 
-    /// @brief Loads the staged NCNN model files
-    /// @throws Throws exception if the model shape, param, or bin files cannot be loaded
-    SemanticSegmentorNcnn();
+    /// @brief Loads the staged TensorRT engine
+    /// @throws Throws exception if the model shape or engine file cannot be loaded
+    SemanticSegmentorTensorRT();
 
     /// @copydoc ISemanticSegmentor::runsOnCoProcessor()
     bool runsOnCoProcessor() override;

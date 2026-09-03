@@ -10,6 +10,8 @@ option(BUILD_TESTS "Build the tests" OFF)
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
+
 if(BUILD_TESTS)
     enable_testing()
 endif()
