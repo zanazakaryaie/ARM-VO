@@ -71,6 +71,10 @@ if(supported)
     set_property(TARGET ArmVO PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
 endif()
 
+if(BUILD_PYTHON_BINDINGS)
+    add_subdirectory(python)
+endif()
+
 if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
