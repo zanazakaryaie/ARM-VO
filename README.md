@@ -16,6 +16,7 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
 - Keypoint tracking is faster by re-using KLT pyramids
 - Motion estimation is more robust in dynamic environments
 - The API and the implementation are much cleaner
+- Added Python bindings
 - Enabled compilation on x86 machines to simplify development
 - Removed ROS node examples (will be back in future)
 
@@ -48,9 +49,9 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
   sudo ldconfig
   ```
 
-- TensorRT 8.6 (optional, preferred over ncnn automatically when found)
+- TensorRT 8.6 (optional)
   
-  ARM-VO will run faster if TensorRT is available
+  ARM-VO will run faster if TensorRT is available. It'll be preferred over ncnn automatically when found.
 
 - Catch2 v2 (only if you want to build tests as well)
   ```bash
@@ -61,6 +62,11 @@ ARM-VO is a monocular visual odometry algorithm designed for on-road vehicles. I
   make -j$(nproc)
   sudo make install
   sudo ldconfig
+  ```
+
+- Pybind11 and NumPy (only if you want to build Python bindings as well)
+  ```bash
+  python3 -m pip install pybind11 numpy
   ```
 
 ## How to build?
@@ -78,6 +84,7 @@ sudo ldconfig
 | Option | Default | Description |
 |---|---:|---|
 | `BUILD_TESTS` | `OFF` | Build unit tests |
+| `BUILD_PYTHON_BINDINGS` | `OFF` | Build the Python bindings for the core ARM-VO library |
 
 ## Run on KITTI dataset
 Download the odometry dataset from [here](https://s3.eu-central-1.amazonaws.com/avg-kitti/data_odometry_color.zip).
@@ -90,7 +97,7 @@ To compare ARM-VO's accuracy with ground-truth poses, first download the ground-
 ./run_armvo --image_folder=path/to/downloaded/images/folder --config=path/to/config.yaml --gt_poses=path/to/ground-truth/poses/foo.txt
 ```
 
-## How to use ARM-VO in your project?
+## How to use ARM-VO in your C++ project?
 If your project uses CMake, you can find the installed ARM-VO package and link
 against the core visual odometry library:
 ```cmake
@@ -103,6 +110,26 @@ your application needs the tools API:
 ```cmake
 find_package(armvo REQUIRED CONFIG)
 target_link_libraries(my_app PRIVATE armvo::ArmVO armvo::ArmVOtools)
+```
+
+## Python bindings
+If you pass `-DBUILD_PYTHON_BINDINGS=ON` to CMake, ARM-VO can be used as a Python package.
+
+Example:
+```python
+import numpy as np
+import armvo
+
+config = armvo.ArmVoConfig.load("cli/KITTI_configs/rectified/Seq00-02.yaml")
+vo = armvo.ArmVo(config)
+
+frame = np.zeros((480, 640), dtype=np.uint8)
+status, pose = vo.initialize(frame)
+
+print(status)
+if pose is not None:
+    print(pose.rotation)
+    print(pose.translation)
 ```
 
 ## Limitations
@@ -135,7 +162,7 @@ target_link_libraries(my_app PRIVATE armvo::ArmVO armvo::ArmVOtools)
 ├── cli/             Command-line tools for running ARM-VO
 ├── cmake/           CMake scripts
 ├── docs/            Documentation and README assets
-├── lib/             Core ARM-VO implementation
+├── lib/             Core ARM-VO implementation and Python bindings
 ├── model/           BiseNetv2 model
 ├── tools/           Utilities for visualization, evaluation, etc.
 └── CMakeLists.txt   Main CMake build file
@@ -153,4 +180,3 @@ Alternatively, you can navigate to `build/lib/tests` or `build/tools/tests` and 
 - Add ROS 1 and ROS 2 examples
 - Add redundancy for scale estimation (e.g. object priors)
 - Support Bazel
-- Add Python bindings
