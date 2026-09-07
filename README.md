@@ -83,12 +83,14 @@ sudo ldconfig
 
 | Option | Default | Description |
 |---|---:|---|
-| `BUILD_TESTS` | `OFF` | Build unit tests |
+| `BUILD_TOOLS` | `ON` | Build the tools library (contains helper utilities) |
+| `BUILD_CLI` | `ON` | Build the command-line tools. This option is enabled only when `BUILD_TOOLS` is also enabled |
 | `BUILD_PYTHON_BINDINGS` | `OFF` | Build the Python bindings for the core ARM-VO library |
+| `BUILD_TESTS` | `OFF` | Build unit tests |
 
 ## Run on KITTI dataset
-Download the odometry dataset from [here](https://s3.eu-central-1.amazonaws.com/avg-kitti/data_odometry_color.zip).
-Open a terminal, navigate to build/cli folder and run:
+Download the odometry dataset from [here](https://s3.eu-central-1.amazonaws.com/avg-kitti/data_odometry_color.zip) and
+build ARM-VO with `-DBUILD_CLI=ON`. Then, open a terminal, navigate to build/cli folder and run:
 ```bash
 ./run_armvo --image_folder=path/to/downloaded/images/folder --config=path/to/config.yaml
 ```
@@ -105,8 +107,8 @@ find_package(armvo REQUIRED CONFIG)
 target_link_libraries(my_app PRIVATE armvo::ArmVO)
 ```
 
-The package also exports `armvo::ArmVOtools` for helper utilities. Link it if
-your application needs the tools API:
+The package also exports `armvo::ArmVOtools` for helper utilities when ARM-VO is
+built with `BUILD_TOOLS=ON`. You can link it by:
 ```cmake
 find_package(armvo REQUIRED CONFIG)
 target_link_libraries(my_app PRIVATE armvo::ArmVO armvo::ArmVOtools)
