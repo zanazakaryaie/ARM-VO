@@ -16,6 +16,8 @@ file(GLOB LIB_SOURCES
     "src/*.cpp"
     "src/*.hpp")
 
+find_package(OpenCV REQUIRED COMPONENTS core imgproc video features2d calib3d)
+
 find_package(TensorRT 8.6 QUIET)
 if(TensorRT_FOUND AND TensorRT_VERSION VERSION_LESS 9.0)
     set(ARMVO_USE_TENSORRT ON)
@@ -49,7 +51,16 @@ target_include_directories(ArmVO
 target_compile_features(ArmVO PUBLIC cxx_std_17)
 target_compile_definitions(ArmVO PRIVATE ${ARMVO_ARCH_DEFINITION})
 target_compile_options(ArmVO PRIVATE ${ARMVO_ARCH_COMPILE_OPTIONS})
-target_link_libraries(ArmVO PUBLIC ${OpenCV_LIBS} PRIVATE dl)
+target_link_libraries(ArmVO
+    PUBLIC
+        opencv_core
+    PRIVATE
+        opencv_imgproc
+        opencv_video
+        opencv_features2d
+        opencv_calib3d
+        dl
+)
 
 if(ARMVO_USE_TENSORRT)
     target_compile_definitions(ArmVO PRIVATE ARMVO_USE_TENSORRT)

@@ -7,9 +7,13 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 option(BUILD_TESTS "Build the tests" OFF)
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
+option(BUILD_TOOLS "Build the tools library" ON)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
+include(CMakeDependentOption)
+
+cmake_dependent_option(BUILD_CLI "Build the command line tools" ON "BUILD_TOOLS" OFF)
 
 list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
@@ -17,12 +21,13 @@ if(BUILD_TESTS)
     enable_testing()
 endif()
 
-set(ARMVO_OPENCV_COMPONENTS core imgproc video highgui features2d calib3d imgcodecs)
-find_package(OpenCV REQUIRED COMPONENTS ${ARMVO_OPENCV_COMPONENTS})
-
 add_subdirectory(lib)
-add_subdirectory(tools)
-add_subdirectory(cli)
+if(BUILD_TOOLS)
+    add_subdirectory(tools)
+endif()
+if(BUILD_CLI)
+    add_subdirectory(cli)
+endif()
 
 set(ARMVO_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/armvo")
 
