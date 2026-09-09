@@ -25,7 +25,8 @@ jobs:
         run: |
           # Error checks are always enabled; add correctness warnings only.
           cppcheck \
-            --enable=warning \
+            --enable=warning,performance \
+            --suppress=useInitializationList \
             --error-exitcode=1 \
             --std=c++17 \
             --language=c++ \
