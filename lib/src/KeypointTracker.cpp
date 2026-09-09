@@ -418,8 +418,8 @@ class KeypointTracker::Impl
 {
     const KeypointTrackerConfig mConfig;
     int mMaxLevel = 3;
-    int mRows;
-    int mCols;
+    int mRows = -1;
+    int mCols = -1;
 
 #ifdef ARM
     std::vector<cv::Mat> mPrevPyr;

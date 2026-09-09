@@ -179,7 +179,7 @@ private:
     static std::string convertArrayToString(const std::array<T, N>& array)
     {
         std::string output = "[";
-        for (int i=0; i<N-1; i++)
+        for (size_t i=0; i<N-1; i++)
         {
             output += std::to_string(array[i]) + ",";
         }
