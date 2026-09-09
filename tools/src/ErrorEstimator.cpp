@@ -30,11 +30,11 @@ public:
             throw std::logic_error("Number of estimated poses and ground truth poses mismatch");
         }
 
-        constexpr int32_t STEP_SIZE = 10; // every second
+        constexpr uint32_t STEP_SIZE = 10; // every second
         std::vector<float> distances = trajectoryDistances(groundTruthPoses);
         std::vector<Error> errors;
 
-        for (int32_t firstFrame=0; firstFrame<groundTruthPoses.size(); firstFrame+=STEP_SIZE)
+        for (uint32_t firstFrame=0; firstFrame<groundTruthPoses.size(); firstFrame+=STEP_SIZE)
         {
             for (const float len : mLengths)
             {
@@ -81,7 +81,7 @@ public:
         std::vector<float> dist;
         dist.reserve(poses.size());
         dist.push_back(0);
-        for (int32_t i=1; i<poses.size(); i++)
+        for (uint32_t i=1; i<poses.size(); i++)
         {
             const cv::Matx31f T1 = poses[i-1].translation;
             const cv::Matx31f T2 = poses[i].translation;
@@ -90,13 +90,13 @@ public:
         return dist;
     }
 
-    static int32_t lastFrameFromSegmentLength(const std::vector<float>& dist, int32_t startFrameIdx, float len)
+    static int32_t lastFrameFromSegmentLength(const std::vector<float>& dist, uint32_t startFrameIdx, float len)
     {
-        for (int32_t i=startFrameIdx; i<dist.size(); i++)
+        for (uint32_t i=startFrameIdx; i<dist.size(); i++)
         {
             if (dist[i] > dist[startFrameIdx]+len)
             {
-                return i;
+                return static_cast<int32_t>(i);
             }
         }
         return -1;
