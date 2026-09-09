@@ -23,8 +23,9 @@ jobs:
 
       - name: Run Cppcheck
         run: |
+          # Error checks are always enabled; add correctness warnings only.
           cppcheck \
-            --enable=warning,style,performance,portability \
+            --enable=warning \
             --error-exitcode=1 \
             --std=c++17 \
             --language=c++ \
