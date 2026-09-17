@@ -1,0 +1,26 @@
+%YAML:1.0
+
+# KITTI sequences 00-02, rectified color images (image_2).
+# Replace the camera values with your own calibration when using other data.
+Vehicle:
+  max_speed: 90 # km/h
+
+Camera:
+  fx: 718.856
+  fy: 718.856
+  cx: 607.1928
+  cy: 185.2157
+  fps: 10
+  height: 1.7 # meters
+  pixel_format: "bgr"
+  # Rectified images need no distortion coefficients.
+  # For unrectified images, add distortions: [k1, k2, p1, p2, k3].
+
+Keypoint_Detector:
+  num_points: 500
+  response_threshold: 5
+  num_image_grid_rows: 6
+  num_image_grid_cols: 12
+
+Keypoint_Tracker:
+  window_size: 15
