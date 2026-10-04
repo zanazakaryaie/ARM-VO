@@ -53,8 +53,8 @@ jobs:
           sudo apt install -y --no-install-recommends build-essential git cmake pkg-config
           echo "::endgroup::"
 
-          echo "::group::OpenCV GUI and ncnn conversion tool dependencies"
-          sudo apt install -y --no-install-recommends libgtk-3-dev libprotobuf-dev protobuf-compiler
+          echo "::group::Prebuilt OpenCV and ncnn conversion tool dependencies"
+          sudo apt install -y --no-install-recommends libopencv-dev libprotobuf-dev protobuf-compiler
           echo "::endgroup::"
 
           echo "::group::Python bindings"
@@ -71,4 +71,4 @@ jobs:
           make -j$(nproc)
 
       - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build/_armvo --output-on-failure

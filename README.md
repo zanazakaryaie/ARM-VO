@@ -24,7 +24,7 @@ ARM-VO is an efficient monocular visual odometry library for on-road vehicles. I
 
 ## Build and install
 
-ARM-VO requires C++17, CMake 3.20+, OpenCV 4.10+, and either ncnn or TensorRT 8.6.x (TensorRT is preferred if available). Note that you don't need to install all of the mentioned dependencies. ARM-VO will first check your system to find most of them. If not found, it'll start to fetch and build them (needs network obviously).So, all you need to do is to install build dependencies:
+ARM-VO requires C++17, CMake 3.20+, OpenCV 4.5.0+, and either ncnn or TensorRT 8.6.x (TensorRT is preferred if available). Note that you don't need to install all of the mentioned dependencies. ARM-VO will first check your system to find most of them. If not found, it'll start to fetch and build them (needs network obviously).So, all you need to do is to install build dependencies:
 
 ```bash
 sudo apt install build-essential git cmake pkg-config libprotobuf-dev protobuf-compiler
