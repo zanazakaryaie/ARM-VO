@@ -1,11 +1,17 @@
 cmake_minimum_required(VERSION 3.20)
 
-project(ARM_VO VERSION 2.0.0 LANGUAGES CXX)
+project(ARM_VO VERSION 2.0.0 LANGUAGES C CXX)
+
+if(NOT DEFINED ARMVO_BUILD_ROOT)
+    set(ARMVO_BUILD_ROOT "${PROJECT_BINARY_DIR}")
+endif()
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_compile_options("$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic;-Werror>")
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
 
 option(BUILD_TESTS "Build the tests" OFF)
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
@@ -23,12 +29,44 @@ if(BUILD_TESTS)
     enable_testing()
 endif()
 
-add_subdirectory(lib)
+configure_file(cmake/Uninstall.cmake.in
+    "${PROJECT_BINARY_DIR}/armvo-uninstall.cmake" @ONLY)
+add_custom_target(uninstall
+    COMMAND "${CMAKE_COMMAND}" -DARMVO_UNINSTALL_DEPENDENCIES=OFF
+        -P "${PROJECT_BINARY_DIR}/armvo-uninstall.cmake"
+    COMMENT "Uninstalling ARM-VO (keeping dependencies)"
+    VERBATIM
+)
+add_custom_target(uninstall-with-dependencies
+    COMMAND "${CMAKE_COMMAND}" -DARMVO_UNINSTALL_DEPENDENCIES=ON
+        -P "${PROJECT_BINARY_DIR}/armvo-uninstall.cmake"
+    COMMENT "Uninstalling ARM-VO and dependencies installed by this build"
+    VERBATIM
+)
+
+add_subdirectory(3rd-party)
+
+if(NOT ARMVO_INNER_BUILD)
+    include(Superbuild)
+    return()
+endif()
+
+install(SCRIPT "${ARMVO_DEPENDENCY_INSTALL_SCRIPT}")
+
+# Install rules run in declaration order, including subdirectories. Record
+# third-party files before any ARM-VO install rules are added.
+install(CODE [[
+    set(_armvo_dependency_files "${CMAKE_INSTALL_MANIFEST_FILES}")
+]])
+
+add_compile_options("$<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-Wall;-Wextra;-Wpedantic;-Werror>")
+
+add_subdirectory(lib "${ARMVO_BUILD_ROOT}/lib")
 if(BUILD_TOOLS)
-    add_subdirectory(tools)
+    add_subdirectory(tools "${ARMVO_BUILD_ROOT}/tools")
 endif()
 if(BUILD_CLI)
-    add_subdirectory(cli)
+    add_subdirectory(cli "${ARMVO_BUILD_ROOT}/cli")
 endif()
 
 set(ARMVO_INSTALL_CMAKEDIR "${CMAKE_INSTALL_LIBDIR}/cmake/armvo")
@@ -55,3 +93,7 @@ install(FILES
     "${PROJECT_BINARY_DIR}/armvoConfigVersion.cmake"
     DESTINATION "${ARMVO_INSTALL_CMAKEDIR}"
 )
+
+configure_file(cmake/RecordInstall.cmake.in
+    "${PROJECT_BINARY_DIR}/armvo-record-install.cmake" @ONLY)
+install(SCRIPT "${PROJECT_BINARY_DIR}/armvo-record-install.cmake")

@@ -8,6 +8,9 @@ install(TARGETS run_armvo
 add_executable(convert_onnx2ncnn src/convert_onnx_to_ncnn.cpp)
 target_include_directories(convert_onnx2ncnn PRIVATE include)
 target_link_libraries(convert_onnx2ncnn PRIVATE ArmVO ArmVOtools)
+set_target_properties(run_armvo convert_onnx2ncnn PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)
 install(TARGETS convert_onnx2ncnn
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )

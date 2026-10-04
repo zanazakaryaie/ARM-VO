@@ -1,6 +1,3 @@
-find_package(Catch2 2 REQUIRED CONFIG)
-include(Catch)
-
 set(ARMVO_PRIVATE_TEST_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/lib/src")
 
 add_executable(test_load_config test_load_config.cpp)
@@ -35,3 +32,9 @@ add_executable(test_semantic_segmentor test_semantic_segmentor.cpp)
 target_include_directories(test_semantic_segmentor PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
 target_link_libraries(test_semantic_segmentor PRIVATE Catch2::Catch2WithMain ArmVO opencv_imgproc)
 catch_discover_tests(test_semantic_segmentor)
+
+set_target_properties(
+    test_load_config test_arm_vo test_keypoint_detector test_keypoint_sampler
+    test_keypoint_tracker test_geometry test_semantic_segmentor
+    PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
+)

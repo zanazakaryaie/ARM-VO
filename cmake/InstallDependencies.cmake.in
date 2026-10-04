@@ -1,0 +1,21 @@
+if(CMAKE_INSTALL_COMPONENT)
+    return()
+endif()
+
+set(dependency_builds "@ARMVO_DEPENDENCY_BUILDS@")
+foreach(build IN LISTS dependency_builds)
+    if(NOT EXISTS "${build}/cmake_install.cmake")
+        message(FATAL_ERROR "Missing dependency build ${build}. Run make before make install.")
+    endif()
+    execute_process(
+        COMMAND "@CMAKE_COMMAND@" --install "${build}" --prefix "${CMAKE_INSTALL_PREFIX}"
+        RESULT_VARIABLE result
+    )
+    if(NOT result EQUAL 0)
+        message(FATAL_ERROR "Dependency installation failed: ${build}")
+    endif()
+    # The subprocess has its own manifest. Include it in ARM-VO's manifest and
+    # dependency-only uninstall records; DESTDIR is intentionally not recorded.
+    file(STRINGS "${build}/install_manifest.txt" installed_files ENCODING UTF-8)
+    list(APPEND CMAKE_INSTALL_MANIFEST_FILES ${installed_files})
+endforeach()

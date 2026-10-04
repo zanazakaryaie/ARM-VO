@@ -14,7 +14,7 @@ From the ARM-VO repository root, build the Python bindings:
 
 ```bash
 mkdir -p build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_BINDINGS=ON
+cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_BINDINGS=ON ..
 make -j$(nproc)
 sudo make install
 cd ..

@@ -9,7 +9,7 @@ First, [build and install ARM-VO](../../README.md#build-and-install). Then, from
 ```bash
 cd examples/cpp
 mkdir build && cd build
-cmake .. -DCMAKE_BUILD_TYPE=Release
+cmake -DCMAKE_BUILD_TYPE=Release ..
 make -j$(nproc)
 ./my_app ../config.yaml /path/to/sequences/00/image_2/*.png
 ```
