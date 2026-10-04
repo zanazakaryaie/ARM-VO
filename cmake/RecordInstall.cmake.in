@@ -1,0 +1,29 @@
+# Record full installations only; a component install must not replace these
+# records with an incomplete list.
+if(CMAKE_INSTALL_COMPONENT)
+    return()
+endif()
+
+set(_armvo_files "${CMAKE_INSTALL_MANIFEST_FILES}")
+if(_armvo_dependency_files)
+    list(REMOVE_ITEM _armvo_files ${_armvo_dependency_files})
+endif()
+
+foreach(kind IN ITEMS armvo dependencies)
+    if(kind STREQUAL "armvo")
+        set(files "${_armvo_files}")
+    else()
+        set(files "${_armvo_dependency_files}")
+    endif()
+
+    # Preserve records across repeated installs (including installs that now
+    # find an earlier dependency installation instead of building it again).
+    set(manifest "@ARMVO_BUILD_ROOT@/install_manifest_${kind}.txt")
+    if(EXISTS "${manifest}")
+        file(STRINGS "${manifest}" previous_files ENCODING UTF-8)
+        list(APPEND files ${previous_files})
+    endif()
+    list(REMOVE_DUPLICATES files)
+    string(REPLACE ";" "\n" contents "${files}")
+    file(WRITE "${manifest}" "${contents}")
+endforeach()

@@ -17,7 +17,7 @@ target_link_libraries(armvo PRIVATE ArmVO)
 target_compile_features(armvo PRIVATE cxx_std_17)
 
 set_target_properties(armvo PROPERTIES
-    LIBRARY_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/python"
+    LIBRARY_OUTPUT_DIRECTORY "${ARMVO_BUILD_ROOT}/python"
 )
 
 if(BUILD_TESTS)

@@ -16,22 +16,6 @@ file(GLOB LIB_SOURCES
     "src/*.cpp"
     "src/*.hpp")
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc video features2d calib3d)
-
-find_package(TensorRT 8.6 QUIET)
-if(TensorRT_FOUND AND TensorRT_VERSION VERSION_LESS 9.0)
-    set(ARMVO_USE_TENSORRT ON)
-    message(STATUS "TensorRT ${TensorRT_VERSION} found: using TensorRT semantic segmentation backend")
-else()
-    set(ARMVO_USE_TENSORRT OFF)
-    if(TensorRT_FOUND)
-        message(STATUS "TensorRT ${TensorRT_VERSION} found, but this backend currently targets TensorRT 8.6.x. Falling back to NCNN.")
-    else()
-        message(STATUS "TensorRT 8.6 not found: falling back to NCNN semantic segmentation backend")
-    endif()
-    find_package(ncnn REQUIRED)
-endif()
-
 if(ARMVO_USE_TENSORRT)
     list(FILTER LIB_SOURCES EXCLUDE REGEX ".*/SemanticSegmentorNcnn\\.(cpp|hpp)$")
 else()

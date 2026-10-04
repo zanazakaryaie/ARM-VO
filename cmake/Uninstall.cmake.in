@@ -1,0 +1,52 @@
+cmake_minimum_required(VERSION 3.20)
+
+set(manifests "@ARMVO_BUILD_ROOT@/install_manifest_armvo.txt")
+if(ARMVO_UNINSTALL_DEPENDENCIES)
+    list(APPEND manifests "@ARMVO_BUILD_ROOT@/install_manifest_dependencies.txt")
+endif()
+
+# Read and validate all records before removing anything. Never infer ownership
+# from directory names or recursively remove shared installation directories.
+set(files)
+foreach(manifest IN LISTS manifests)
+    if(NOT EXISTS "${manifest}")
+        message(FATAL_ERROR "Missing ${manifest}. A full installation with uninstall support is required.")
+    endif()
+    file(STRINGS "${manifest}" entries ENCODING UTF-8)
+    list(APPEND files ${entries})
+endforeach()
+
+list(REMOVE_DUPLICATES files)
+
+foreach(path IN LISTS files)
+    if(NOT IS_ABSOLUTE "${path}")
+        message(FATAL_ERROR "Invalid non-absolute installation path: ${path}")
+    endif()
+    set(installed_path "$ENV{DESTDIR}${path}")
+    if(IS_DIRECTORY "${installed_path}" AND NOT IS_SYMLINK "${installed_path}")
+        message(FATAL_ERROR "Refusing to remove a directory: ${installed_path}")
+    endif()
+endforeach()
+
+foreach(path IN LISTS files)
+    set(installed_path "$ENV{DESTDIR}${path}")
+    if(EXISTS "${installed_path}" OR IS_SYMLINK "${installed_path}")
+        if(ARMVO_UNINSTALL_DRY_RUN)
+            message(STATUS "Would remove: ${installed_path}")
+        else()
+            message(STATUS "Removing: ${installed_path}")
+            file(REMOVE "${installed_path}")
+            if(EXISTS "${installed_path}" OR IS_SYMLINK "${installed_path}")
+                message(FATAL_ERROR "Could not remove ${installed_path}; check permissions.")
+            endif()
+        endif()
+    endif()
+endforeach()
+
+# Keep dependency records when uninstalling only ARM-VO, so they can be removed
+# later. Clear successful removals to make repeated uninstall commands harmless.
+if(NOT ARMVO_UNINSTALL_DRY_RUN)
+    foreach(manifest IN LISTS manifests)
+        file(WRITE "${manifest}" "")
+    endforeach()
+endif()

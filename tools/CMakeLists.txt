@@ -2,8 +2,6 @@ file(GLOB TOOLS_SOURCES
      CONFIGURE_DEPENDS
      "src/*.cpp")
 
-find_package(OpenCV REQUIRED COMPONENTS core imgproc highgui imgcodecs)
-
 add_library(ArmVOtools SHARED)
 target_sources(ArmVOtools PRIVATE ${TOOLS_SOURCES})
 target_include_directories(ArmVOtools
