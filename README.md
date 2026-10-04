@@ -43,6 +43,16 @@ sudo ldconfig
 cd ..
 ```
 
+#### Build Options
+
+| Option | Default | Purpose | Extra dependencies |
+|---|---|---|---|
+| `BUILD_TOOLS` | `ON` | Visualization, evaluation, and model conversion utilities | None |
+| `BUILD_CLI` | `ON` | Command-line tools; requires `BUILD_TOOLS=ON` | None |
+| `BUILD_PYTHON_BINDINGS` | `OFF` | Python API | `python3 -m pip install pybind11 numpy` |
+| `BUILD_TESTS` | `OFF` | Unit tests | Catch2 v2.13.10: automatically detected if available, otherwise fetched and built by CMake. |
+
+
 #### Uninstall
 
 Keep the build directory after installation: it contains the uninstall script
@@ -60,15 +70,6 @@ To also remove dependencies that ARM-VO built and installed:
 sudo make uninstall-with-dependencies
 sudo ldconfig
 ```
-
-#### Build Options
-
-| Option | Default | Purpose | Extra dependencies |
-|---|---|---|---|
-| `BUILD_TOOLS` | `ON` | Visualization, evaluation, and model conversion utilities | None |
-| `BUILD_CLI` | `ON` | Command-line tools; requires `BUILD_TOOLS=ON` | None |
-| `BUILD_PYTHON_BINDINGS` | `OFF` | Python API | `python3 -m pip install pybind11 numpy` |
-| `BUILD_TESTS` | `OFF` | Unit tests | Catch2 v2.13.10: automatically detected if available, otherwise fetched and built by CMake. |
 
 ## Run on KITTI dataset
 
