@@ -47,6 +47,7 @@ cd ..
 
 | Option | Default | Purpose | Extra dependencies |
 |---|---|---|---|
+| `INFERENCE_BACKEND` | `AUTO` | Explicit selection for inference backend; You can set it to `NCNN` or `TENSORRT` or `AUTO` (prefers TensorRT over Ncnn when available) | `TENSORRT` requires an installed TensorRT 8.6.x with `trtexec` and the CUDA toolkit |
 | `BUILD_TOOLS` | `ON` | Visualization, evaluation, and model conversion utilities | None |
 | `BUILD_CLI` | `ON` | Command-line tools; requires `BUILD_TOOLS=ON` | None |
 | `BUILD_PYTHON_BINDINGS` | `OFF` | Python API | `python3 -m pip install pybind11 numpy` |

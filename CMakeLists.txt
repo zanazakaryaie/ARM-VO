@@ -16,6 +16,8 @@ endif()
 option(BUILD_TESTS "Build the tests" OFF)
 option(BUILD_PYTHON_BINDINGS "Build Python bindings" OFF)
 option(BUILD_TOOLS "Build the tools library" ON)
+set(INFERENCE_BACKEND "AUTO" CACHE STRING "Inference backend: AUTO, NCNN, or TENSORRT")
+set_property(CACHE INFERENCE_BACKEND PROPERTY STRINGS AUTO NCNN TENSORRT)
 
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
