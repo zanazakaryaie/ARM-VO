@@ -42,8 +42,17 @@ jobs:
             lib/src tools/src cli/src
 
   build-and-test:
+    name: Build and test (${{ matrix.arch }})
     needs: static-analysis
-    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Install dependencies
