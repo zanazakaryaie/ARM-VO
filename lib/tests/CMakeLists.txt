@@ -28,6 +28,21 @@ target_include_directories(test_geometry PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DI
 target_link_libraries(test_geometry PRIVATE Catch2::Catch2WithMain ArmVO opencv_calib3d opencv_imgproc)
 catch_discover_tests(test_geometry)
 
+add_executable(test_road_plane_scale_estimator test_road_plane_scale_estimator.cpp)
+target_include_directories(test_road_plane_scale_estimator PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_road_plane_scale_estimator PRIVATE Catch2::Catch2WithMain ArmVO opencv_imgproc)
+catch_discover_tests(test_road_plane_scale_estimator)
+
+add_executable(test_scale_fusion test_scale_fusion.cpp)
+target_include_directories(test_scale_fusion PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_scale_fusion PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_scale_fusion)
+
+add_executable(test_temporal_scale_filter test_temporal_scale_filter.cpp)
+target_include_directories(test_temporal_scale_filter PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
+target_link_libraries(test_temporal_scale_filter PRIVATE Catch2::Catch2WithMain ArmVO)
+catch_discover_tests(test_temporal_scale_filter)
+
 add_executable(test_semantic_segmentor test_semantic_segmentor.cpp)
 target_include_directories(test_semantic_segmentor PRIVATE ${ARMVO_PRIVATE_TEST_INCLUDE_DIR})
 target_link_libraries(test_semantic_segmentor PRIVATE Catch2::Catch2WithMain ArmVO opencv_imgproc)
@@ -35,6 +50,7 @@ catch_discover_tests(test_semantic_segmentor)
 
 set_target_properties(
     test_load_config test_arm_vo test_keypoint_detector test_keypoint_sampler
-    test_keypoint_tracker test_geometry test_semantic_segmentor
+    test_keypoint_tracker test_geometry test_road_plane_scale_estimator
+    test_scale_fusion test_temporal_scale_filter test_semantic_segmentor
     PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
 )

@@ -10,6 +10,8 @@
 #include "Geometry.hpp"
 #include "KeypointSampler.hpp"
 #include "SemanticSegmentorFactory.hpp"
+#include "RoadPlaneScaleEstimator.hpp"
+#include "TemporalScaleFilter.hpp"
 
 #include <opencv2/imgproc.hpp>
 
@@ -25,7 +27,8 @@ class ArmVo::Impl
     std::unique_ptr<GRIC> mGRIC;
     std::unique_ptr<MotionEstimator> mMotionEstimator;
     std::unique_ptr<ISemanticSegmentor> mSemanticSegmentor;
-    std::unique_ptr<ScaleEstimator> mScaleEstimator;
+    std::unique_ptr<IScaleEstimator> mScaleEstimator;
+    std::unique_ptr<TemporalScaleFilter> mTemporalScaleFilter;
     cv::Size mCameraResolution;
     std::unique_ptr<NonOverlappingGrid> mImageCells;
     std::vector<cv::Point2f> mPreviousKeypoints;
@@ -49,7 +52,8 @@ public:
         mGRIC = std::make_unique<GRIC>();
         mMotionEstimator = std::make_unique<MotionEstimator>(config.camera.intrinsics);
         mSemanticSegmentor = SemanticSegmentorFactory::create();
-        mScaleEstimator = std::make_unique<ScaleEstimator>(config.camera, config.maxVehicleSpeed, mKeypointTracker);
+        mScaleEstimator = std::make_unique<RoadPlaneScaleEstimator>(config.camera, *mKeypointTracker);
+        mTemporalScaleFilter = std::make_unique<TemporalScaleFilter>(config.camera.fps, config.maxVehicleSpeed);
     }
 
     Status initialize(const cv::Mat& frame, Pose& pose)
@@ -97,8 +101,7 @@ public:
         cv::Mat staticMask = mSemanticSegmentor->getStaticMask(segmentationMap);
         mPreviousKeypoints = mKeypointSampler->run(keypoints, *mImageCells, staticMask, mConfig.keypointDetector.maxNumberOfPoints);
 
-        cv::Mat roadMask = mSemanticSegmentor->getRoadMask(segmentationMap);
-        mScaleEstimator->initialize(keypoints, roadMask);
+        mScaleEstimator->initialize({keypoints, segmentationMap});
 
         mCurrentPose.rotation = cv::Matx33f::eye();
         mCurrentPose.translation = cv::Matx31f::zeros();
@@ -211,9 +214,9 @@ public:
             return Status::SCALE_ESTIMATION_FAILURE;
         }
 
-        cv::Mat roadMask = mSemanticSegmentor->getRoadMask(segmentationMap);
-        mScaleEstimator->setCurrentFrameData(keypoints, roadMask);
-        const std::optional<float> scaleFactor = mScaleEstimator->estimate(estimatedMotion.rotation, estimatedMotion.translation);
+        mScaleEstimator->setCurrentFrameData({keypoints, segmentationMap});
+        const auto scaleMeasurements = mScaleEstimator->estimate(estimatedMotion.rotation, estimatedMotion.translation);
+        const std::optional<float> scaleFactor = mTemporalScaleFilter->update(scaleMeasurements);
 
         if (!scaleFactor.has_value())
         {
