@@ -2,6 +2,9 @@
 ARM-VO benefits from semantic segmentation of the scene in 2 ways:
 
 ### 1.1 Scale Estimation
+See [scale-estimation components](scale-estimation.md) for the implementation
+structure, measurement weights, and temporal behavior.
+
 Scale estimation is done by:
 - Fitting a plane to road regions
 - Computing the camera height above the fitted plane (let's call it H)

@@ -7,7 +7,6 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
-#include <memory>
 #include <vector>
 
 #include "Geometry.hpp"
@@ -170,13 +169,6 @@ float dotVec(const cv::Matx31f& lhs, const cv::Matx31f& rhs)
     return lhs(0) * rhs(0) + lhs(1) * rhs(1) + lhs(2) * rhs(2);
 }
 
-std::unique_ptr<armvo::KeypointTracker> makeKeypointTracker()
-{
-    armvo::KeypointTrackerConfig trackerConfig;
-    trackerConfig.windowSize = 15;
-    return std::make_unique<armvo::KeypointTracker>(trackerConfig);
-}
-
 armvo::CameraConfig makeCameraConfig()
 {
     armvo::CameraConfig config;
@@ -227,22 +219,6 @@ std::vector<cv::Point2f> makeRoadFeaturePoints()
     return points;
 }
 
-cv::Mat renderRoadTexture(const cv::Size& size, const std::vector<cv::Point2f>& points)
-{
-    cv::Mat image(size, CV_8UC1, cv::Scalar(0));
-
-    for (size_t i = 0; i < points.size(); i++)
-    {
-        const cv::Point center(cvRound(points[i].x), cvRound(points[i].y));
-        const int intensity = 150 + static_cast<int>((i * 37) % 90);
-        cv::circle(image, center, 5, cv::Scalar(intensity), cv::FILLED);
-        cv::line(image, center + cv::Point(-7, 2), center + cv::Point(8, 2), cv::Scalar(255), 1);
-        cv::line(image, center + cv::Point(2, -7), center + cv::Point(2, 8), cv::Scalar(220), 1);
-    }
-
-    return image;
-}
-
 std::vector<cv::Point2f> warpPoints(const cv::Matx33f& homography, const std::vector<cv::Point2f>& points)
 {
     std::vector<cv::Point2f> warped;
@@ -254,19 +230,6 @@ std::vector<cv::Point2f> warpPoints(const cv::Matx33f& homography, const std::ve
     }
 
     return warped;
-}
-
-std::vector<armvo::Keypoint> makeKeypoints(const std::vector<cv::Point2f>& points)
-{
-    std::vector<armvo::Keypoint> keypoints;
-    keypoints.reserve(points.size());
-
-    for (size_t i = 0; i < points.size(); i++)
-    {
-        keypoints.emplace_back(points[i].x, points[i].y, 100.0f + static_cast<float>(i));
-    }
-
-    return keypoints;
 }
 
 } // namespace
@@ -465,90 +428,4 @@ TEST_CASE("MotionEstimator recovers rotation and unit translation direction from
     CHECK(cv::norm(pose.rotation - rotation) < kEps);
     CHECK(std::abs(cv::norm(pose.translation) - 1.0f) < kTightEps);
     CHECK(dotVec(pose.translation, expectedTranslation) > 0.99f);
-}
-
-TEST_CASE("ScaleEstimator validates constructor inputs")
-{
-    SECTION("valid configuration")
-    {
-        auto tracker = makeKeypointTracker();
-        const armvo::CameraConfig cameraConfig = makeCameraConfig();
-
-        CHECK_NOTHROW(armvo::ScaleEstimator(cameraConfig, 90.0f, tracker));
-    }
-
-    SECTION("invalid camera height")
-    {
-        auto tracker = makeKeypointTracker();
-        armvo::CameraConfig cameraConfig = makeCameraConfig();
-        cameraConfig.height = 0.0f;
-
-        CHECK_THROWS(armvo::ScaleEstimator(cameraConfig, 90.0f, tracker));
-    }
-
-    SECTION("invalid max vehicle speed")
-    {
-        auto tracker = makeKeypointTracker();
-        const armvo::CameraConfig cameraConfig = makeCameraConfig();
-
-        CHECK_THROWS(armvo::ScaleEstimator(cameraConfig, 0.0f, tracker));
-    }
-}
-
-TEST_CASE("ScaleEstimator estimates scale from tracked planar road points")
-{
-    auto tracker = makeKeypointTracker();
-    const armvo::CameraConfig cameraConfig = makeCameraConfig();
-
-    const cv::Matx33f rotation = cv::Matx33f::eye();
-    const cv::Matx31f unitTranslation(1.0f, 0.0f, 0.0f);
-    const cv::Matx31f roadPlaneNormal(0.0f, 1.0f, 0.0f);
-    const float expectedScale = 0.2f;
-
-    const cv::Size imageSize(640, 480);
-    const cv::Matx33f homography = makePlanarPixelHomography(
-        cameraConfig, rotation, unitTranslation, roadPlaneNormal, expectedScale);
-
-    const auto previousPoints = makeRoadFeaturePoints();
-    const auto currentPoints = warpPoints(homography, previousPoints);
-    const cv::Mat previousFrame = renderRoadTexture(imageSize, previousPoints);
-
-    cv::Mat currentFrame;
-    cv::warpPerspective(previousFrame, currentFrame, cv::Mat(homography), imageSize);
-
-    const cv::Mat roadMask(imageSize, CV_8UC1, cv::Scalar(255));
-
-    tracker->setPreviousFrame(previousFrame);
-    tracker->setCurrentFrame(currentFrame);
-
-    armvo::ScaleEstimator estimator(cameraConfig, 90.0f, tracker);
-    estimator.initialize(makeKeypoints(previousPoints), roadMask);
-    estimator.setCurrentFrameData(makeKeypoints(currentPoints), roadMask);
-
-    const std::optional<float> scale = estimator.estimate(rotation, unitTranslation);
-
-    REQUIRE(scale.has_value());
-    CHECK(scale.value() == Approx(expectedScale).margin(0.05f));
-}
-
-TEST_CASE("ScaleEstimator returns no scale when no road points are available")
-{
-    auto tracker = makeKeypointTracker();
-    const armvo::CameraConfig cameraConfig = makeCameraConfig();
-
-    const cv::Size imageSize(320, 240);
-    const cv::Mat previousFrame(imageSize, CV_8UC1, cv::Scalar(0));
-    const cv::Mat currentFrame(imageSize, CV_8UC1, cv::Scalar(0));
-    const cv::Mat emptyRoadMask(imageSize, CV_8UC1, cv::Scalar(0));
-
-    tracker->setPreviousFrame(previousFrame);
-    tracker->setCurrentFrame(currentFrame);
-
-    armvo::ScaleEstimator estimator(cameraConfig, 90.0f, tracker);
-    estimator.initialize(makeKeypoints(makeRoadFeaturePoints()), emptyRoadMask);
-    estimator.setCurrentFrameData(makeKeypoints(makeRoadFeaturePoints()), emptyRoadMask);
-
-    const std::optional<float> scale = estimator.estimate(cv::Matx33f::eye(), cv::Matx31f(1.0f, 0.0f, 0.0f));
-
-    CHECK_FALSE(scale.has_value());
 }

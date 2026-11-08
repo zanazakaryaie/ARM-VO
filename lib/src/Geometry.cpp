@@ -1,11 +1,9 @@
 #include "Geometry.hpp"
-#include "KeypointSampler.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <future>
 #include <memory>
-#include <numeric>
 #include <stdexcept>
 #include <tuple>
 
@@ -29,53 +27,6 @@ cv::Matx34f createProjectionMatrix(const cv::Matx33f& rotation, const cv::Matx31
         projectionMatrix(i, 3) = translation(i);
     }
     return projectionMatrix;
-}
-
-std::vector<float> sampsonDistanceSquaredH(const cv::Matx33f& homographyMatrix,
-                                           const std::vector<cv::Point2f>& pts0,
-                                           const std::vector<cv::Point2f>& pts1)
-{
-    float G0[3], G1[3], alg[2];
-    const float* const H = homographyMatrix.val;
-    const uint32_t npts = pts0.size();
-    std::vector<float> residuals(npts);
-
-    for(uint32_t i=0; i<npts; ++i)
-    {
-        const float m0_x = pts0[i].x;
-        const float m0_y = pts0[i].y;
-
-        const float m1_x = pts1[i].x;
-        const float m1_y = pts1[i].y;
-
-        G0[0]= H[0] - m1_x * H[6];
-        G0[1]= H[1] - m1_x * H[7];
-        G0[2]=-m0_x * H[6] - m0_y * H[7] - H[8];
-
-        G1[0]= H[3] - m1_y * H[6];
-        G1[1]= H[4] - m1_y * H[7];
-        G1[2]=-m0_x * H[6] - m0_y * H[7] - H[8];
-
-        const float magG0 = sqrt(G0[0]*G0[0] + G0[1]*G0[1] + G0[2]*G0[2]);
-        const float magG1 = sqrt(G1[0]*G1[0] + G1[1]*G1[1] + G1[2]*G1[2]);
-        const float magG0G1 = G0[0]*G1[0] + G0[1]*G1[1];
-
-        const float alpha = acos(magG0G1 /(magG0*magG1));
-
-        /* algebraic distance */
-        alg[0] = m0_x*H[0] + m0_y*H[1] + H[2] -
-                    m1_x*(m0_x*H[6] + m0_y*H[7] + H[8]);
-
-        alg[1] = m0_x*H[3] + m0_y*H[4] + H[5] -
-                    m1_y*(m0_x*H[6] + m0_y*H[7] + H[8]);
-
-        const float D1 = alg[0]/magG0;
-        const float D2 = alg[1]/magG1;
-
-        residuals[i] = (D1*D1 + D2*D2 - 2.0*D1*D2*cosf(alpha))/sinf(alpha);
-    }
-
-    return residuals;
 }
 
 std::vector<float> sampsonDistanceSquaredF(const cv::Matx33f& fundamentalMatrix,
@@ -125,7 +76,59 @@ cv::Matx33f convertMat(cv::Mat src)
     return dst;
 }
 
-cv::Matx33f estimateHomographyMatrix(const std::vector<cv::Point2f>& points1, const std::vector<cv::Point2f>& points2, std::vector<uchar>& mask, bool accurate)
+}
+
+namespace armvo
+{
+
+std::vector<float> sampsonDistanceSquaredH(const cv::Matx33f& homographyMatrix,
+                                           const std::vector<cv::Point2f>& pts0,
+                                           const std::vector<cv::Point2f>& pts1)
+{
+    float G0[3], G1[3], alg[2];
+    const float* const H = homographyMatrix.val;
+    const uint32_t npts = pts0.size();
+    std::vector<float> residuals(npts);
+
+    for(uint32_t i=0; i<npts; ++i)
+    {
+        const float m0_x = pts0[i].x;
+        const float m0_y = pts0[i].y;
+
+        const float m1_x = pts1[i].x;
+        const float m1_y = pts1[i].y;
+
+        G0[0]= H[0] - m1_x * H[6];
+        G0[1]= H[1] - m1_x * H[7];
+        G0[2]=-m0_x * H[6] - m0_y * H[7] - H[8];
+
+        G1[0]= H[3] - m1_y * H[6];
+        G1[1]= H[4] - m1_y * H[7];
+        G1[2]=-m0_x * H[6] - m0_y * H[7] - H[8];
+
+        const float magG0 = sqrt(G0[0]*G0[0] + G0[1]*G0[1] + G0[2]*G0[2]);
+        const float magG1 = sqrt(G1[0]*G1[0] + G1[1]*G1[1] + G1[2]*G1[2]);
+        const float magG0G1 = G0[0]*G1[0] + G0[1]*G1[1];
+
+        const float alpha = acos(magG0G1 /(magG0*magG1));
+
+        /* algebraic distance */
+        alg[0] = m0_x*H[0] + m0_y*H[1] + H[2] -
+                    m1_x*(m0_x*H[6] + m0_y*H[7] + H[8]);
+
+        alg[1] = m0_x*H[3] + m0_y*H[4] + H[5] -
+                    m1_y*(m0_x*H[6] + m0_y*H[7] + H[8]);
+
+        const float D1 = alg[0]/magG0;
+        const float D2 = alg[1]/magG1;
+
+        residuals[i] = (D1*D1 + D2*D2 - 2.0*D1*D2*cosf(alpha))/sinf(alpha);
+    }
+
+    return residuals;
+}
+
+cv::Matx33f estimateHomographyMatrixWithInliers(const std::vector<cv::Point2f>& points1, const std::vector<cv::Point2f>& points2, std::vector<uchar>& mask, bool accurate)
 {
     cv::Mat homographyMatrixDouble;
     if (accurate)
@@ -144,11 +147,6 @@ cv::Matx33f estimateHomographyMatrix(const std::vector<cv::Point2f>& points1, co
     return convertMat(homographyMatrixDouble);
 }
 
-}
-
-namespace armvo
-{
-
 cv::Matx33f estimateFundamentalMatrix(const std::vector<cv::Point2f>& points1, const std::vector<cv::Point2f>& points2, float reprojectionError, cv::Mat& mask)
 {
     constexpr int METHOD = cv::FM_RANSAC;
@@ -165,7 +163,7 @@ cv::Matx33f estimateHomographyMatrix(const std::vector<cv::Point2f>& points1, co
 {
     std::vector<uchar> mask;
     static const bool accurate = false;
-    return ::estimateHomographyMatrix(points1, points2, mask, accurate);
+    return estimateHomographyMatrixWithInliers(points1, points2, mask, accurate);
 }
 
 std::vector<cv::Point2f> undistortPoints(const std::vector<cv::Point2f>& points, const cv::Matx33f& intrinsics, const cv::Mat& distortions)
@@ -346,219 +344,6 @@ public:
 };
 
 
-class ScaleEstimator::Impl
-{
-    CameraConfig mCamConfig;
-    cv::Matx33f mKinv;
-    float mMaxPossibleScale;
-    KeypointSampler mKeypointSampler;
-    static constexpr uint32_t NUM_ROAD_POINTS_TO_USE = 100;
-    static constexpr float JUMP_UP_SCALE_RATIO = 2.5f;
-    static constexpr float JUMP_DOWN_SCALE_RATIO = 0.4f;
-
-    std::vector<cv::Point2f> mPrevRoadPoints;
-    std::vector<cv::Point2f> mCurrRoadPoints;
-    std::unique_ptr<KeypointTracker>& mKeyPointTracker;
-    std::optional<float> mPreviousScale = std::nullopt;
-
-    struct Scale
-    {
-        float value;
-        float weight;
-    };
-
-public:
-
-    Impl(const CameraConfig& camConfig, float maxVehicleSpeed, std::unique_ptr<KeypointTracker>& keyPointTracker)
-        : mCamConfig(camConfig), mKeyPointTracker(keyPointTracker)
-    {
-        if (camConfig.height <= 0)
-        {
-            throw std::invalid_argument("Camera height is expected to be larger than zero");
-        }
-        if (maxVehicleSpeed <= 0)
-        {
-            throw std::invalid_argument("Max vehicle speed is expected to be larger than zero");
-        }
-        mKinv = camConfig.intrinsics.inv();
-        mMaxPossibleScale = (maxVehicleSpeed * 1000 / 3600) / camConfig.fps;
-    }
-
-    void initialize(const std::vector<Keypoint>& points, const cv::Mat& roadMask)
-    {
-        std::vector<cv::Point2f> rawRoadPoints = mKeypointSampler.run(points, roadMask, NUM_ROAD_POINTS_TO_USE);
-        if (mCamConfig.distortions.has_value())
-        {
-            mPrevRoadPoints = undistortPoints(rawRoadPoints, mCamConfig.intrinsics, mCamConfig.distortions.value());
-        }
-        else
-        {
-            mPrevRoadPoints = std::move(rawRoadPoints);
-        }
-    }
-
-    void setCurrentFrameData(const std::vector<Keypoint>& points, const cv::Mat& roadMask)
-    {
-        std::vector<cv::Point2f> rawRoadPoints = mKeypointSampler.run(points, roadMask, NUM_ROAD_POINTS_TO_USE);
-        if (mCamConfig.distortions.has_value())
-        {
-            mCurrRoadPoints = undistortPoints(rawRoadPoints, mCamConfig.intrinsics, mCamConfig.distortions.value());
-        }
-        else
-        {
-            mCurrRoadPoints = std::move(rawRoadPoints);
-        }
-    }
-
-    std::optional<float> estimate(const cv::Matx33f& rotation, const cv::Matx31f& translation)
-    {
-        const std::optional<Scale> scaleForward = estimateForward(rotation, translation);
-        const std::optional<Scale> scaleBackward = estimateBackward(rotation, translation);
-        auto scale = fuseScales(scaleForward, scaleBackward);
-
-        if (!scale.has_value())
-        {
-            scale = mPreviousScale;
-        }
-
-        mPreviousScale = scale;
-
-        return scale;
-    }
-
-    void step()
-    {
-        mPrevRoadPoints = std::move(mCurrRoadPoints);
-    }
-
-private:
-
-    std::optional<Scale> estimateForward(const cv::Matx33f& rotation, const cv::Matx31f& translation)
-    {
-        try
-        {
-            const auto trackedRoadPoints = mKeyPointTracker->trackForward(mPrevRoadPoints);
-            return estimateScale(mPrevRoadPoints, trackedRoadPoints, rotation, translation);
-        }
-        catch (...)
-        {
-            return std::nullopt;
-        }
-    }
-
-    std::optional<Scale> estimateBackward(const cv::Matx33f& rotation, const cv::Matx31f& translation)
-    {
-        try
-        {
-            const auto trackedRoadPoints = mKeyPointTracker->trackBackward(mCurrRoadPoints);
-            cv::Matx33f backwardRotation = rotation.t();
-            cv::Matx31f backwardTranslation = -backwardRotation * translation;
-            return estimateScale(mCurrRoadPoints, trackedRoadPoints, backwardRotation, backwardTranslation);
-        }
-        catch (...)
-        {
-            return std::nullopt;
-        }
-    }
-
-    std::optional<Scale> estimateScale(const std::vector<cv::Point2f>& prevRoadPoints,
-                                       const std::vector<cv::Point2f>& currRoadPoints,
-                                       const cv::Matx33f& rotation,
-                                       const cv::Matx31f& translation) const
-    {
-        static const bool accurateHomo = true;
-        cv::Matx33f Homography;
-        std::vector<uchar> mask;
-        try
-        {
-            Homography = ::estimateHomographyMatrix(prevRoadPoints, currRoadPoints, mask, accurateHomo);
-        }
-        catch (...)
-        {
-            return std::nullopt;
-        }
-
-        const cv::Matx33f Hnorm = mKinv * Homography * mCamConfig.intrinsics;
-
-        if (isHomographyDegenerate(Hnorm))
-        {
-            return std::nullopt;
-        }
-
-        cv::Matx33f M = rotation - Hnorm;
-        const cv::Matx31f v = M.t() * translation;
-        const float scale = mCamConfig.height * cv::norm(v);
-
-        if (scale > mMaxPossibleScale)
-        {
-            return std::nullopt;
-        }
-
-        if (mPreviousScale.has_value())
-        {
-            const float prevScale = mPreviousScale.value();
-            if (scale > JUMP_UP_SCALE_RATIO*prevScale || scale < JUMP_DOWN_SCALE_RATIO*prevScale)
-            {
-                return std::nullopt;
-            }
-        }
-
-        Scale output;
-        output.value = scale;
-
-        std::vector<cv::Point2f> inlierPrevPoints;
-        std::vector<cv::Point2f> inlierCurrPoints;
-        const uint32_t numInliers = cv::countNonZero(mask);
-        inlierPrevPoints.reserve(numInliers);
-        inlierCurrPoints.reserve(numInliers);
-        for (uint32_t i=0; i<prevRoadPoints.size(); i++)
-        {
-            if (mask[i])
-            {
-                inlierPrevPoints.push_back(prevRoadPoints[i]);
-                inlierCurrPoints.push_back(currRoadPoints[i]);
-            }
-        }
-
-        const std::vector<float> residuals = sampsonDistanceSquaredH(Homography, inlierPrevPoints, inlierCurrPoints);
-        const float sum = std::accumulate(residuals.begin(), residuals.end(), 0.0f);
-        const float sampsonDistance = sum / residuals.size();
-        output.weight = 1.0f / (1e-6f + sampsonDistance);
-
-        return output;
-    }
-
-    static bool isHomographyDegenerate(const cv::Matx33f& homography)
-    {
-        cv::SVD svd(homography, cv::SVD::MODIFY_A);
-        return (svd.w.at<float>(2) / svd.w.at<float>(1)) < 1e-3f;
-    }
-
-    static std::optional<float> fuseScales(const std::optional<Scale>& scaleForward, const std::optional<Scale>& scaleBackward)
-    {
-        if (scaleForward.has_value() && scaleBackward.has_value())
-        {
-            const Scale scaleFwd = scaleForward.value();
-            const Scale scaleBwd = scaleBackward.value();
-            const float lnScaleFused = (scaleFwd.weight * std::log(scaleFwd.value) + scaleBwd.weight * std::log(scaleBwd.value)) / (scaleFwd.weight + scaleBwd.weight);
-            return std::exp(lnScaleFused);
-        }
-        else if (scaleForward.has_value() && !scaleBackward.has_value())
-        {
-            return scaleForward.value().value;
-        }
-        else if (!scaleForward.has_value() && scaleBackward.has_value())
-        {
-            return scaleBackward.value().value;
-        }
-        else
-        {
-            return std::nullopt;
-        }
-    }
-};
-
-
 GRIC::GRIC()
 {
     mImpl = std::make_shared<Impl>();
@@ -590,29 +375,4 @@ Pose MotionEstimator::estimate(const cv::Matx33f& fundamentalMatrix, const std::
     return mImpl->estimate(fundamentalMatrix, points1, points2, mask);
 }
 
-ScaleEstimator::ScaleEstimator(const CameraConfig& camConfig, float maxVehicleSpeed, std::unique_ptr<KeypointTracker>& keyPointTracker)
-{
-    mImpl = std::make_shared<Impl>(camConfig, maxVehicleSpeed, keyPointTracker);
-}
-
-void ScaleEstimator::initialize(const std::vector<Keypoint>& points, const cv::Mat& roadMask)
-{
-    mImpl->initialize(points, roadMask);
-}
-
-void ScaleEstimator::setCurrentFrameData(const std::vector<Keypoint>& points, const cv::Mat& roadMask)
-{
-    mImpl->setCurrentFrameData(points, roadMask);
-}
-
-std::optional<float> ScaleEstimator::estimate(const cv::Matx33f& rotation, const cv::Matx31f& translation)
-{
-    return mImpl->estimate(rotation, translation);
-}
-
-void ScaleEstimator::step()
-{
-    mImpl->step();
-}
-
-}
+} // namespace armvo
