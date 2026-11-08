@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -24,10 +25,8 @@ public:
     std::optional<float> update(const std::vector<ScaleMeasurement>& measurements);
 
 private:
-    bool accepts(float scale) const;
-
-    float mMaxPossibleScale;
-    std::optional<float> mPreviousScale;
+    class Impl;
+    std::shared_ptr<Impl> mImpl;
 };
 
 } // namespace armvo
