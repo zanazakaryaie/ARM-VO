@@ -1,5 +1,6 @@
 #include "RoadPlaneScaleEstimator.hpp"
 
+#include <cmath>
 #include <numeric>
 #include <optional>
 #include <stdexcept>
@@ -141,9 +142,31 @@ private:
             return std::nullopt;
         }
 
-        cv::Matx33f M = rotation - Hnorm;
-        const cv::Matx31f v = M.t() * translation;
+        // A fitted homography has arbitrary scale, even after removing intrinsics.
+        // For unit translation t, alpha * Hnorm = R - t * v^T. Projecting out t
+        // leaves alpha * P * Hnorm = P * R, which determines alpha by least squares.
+        const cv::Matx31d t = translation;
+        const cv::Matx33d R = rotation;
+        const cv::Matx33d H = Hnorm;
+        const cv::Matx33d P = cv::Matx33d::eye() - t * t.t();
+        const cv::Matx33d projectedH = P * H;
+        const double denominator = projectedH.dot(projectedH);
+        if (!std::isfinite(denominator) || denominator <= 0)
+        {
+            return std::nullopt;
+        }
+        const double alpha = projectedH.dot(P * R) / denominator;
+        if (!std::isfinite(alpha) || alpha == 0)
+        {
+            return std::nullopt;
+        }
+
+        const cv::Matx31d v = (R - alpha * H).t() * t;
         const float scale = mCamConfig.height * cv::norm(v);
+        if (!std::isfinite(scale))
+        {
+            return std::nullopt;
+        }
 
         ScaleMeasurement output;
         output.value = scale;

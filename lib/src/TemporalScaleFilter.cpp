@@ -47,7 +47,7 @@ private:
 
     bool isAccepted(float scale) const
     {
-        constexpr float JUMP_UP_SCALE_RATIO = 2.5f;
+        constexpr float JUMP_UP_SCALE_RATIO = 2.57f;
         constexpr float JUMP_DOWN_SCALE_RATIO = 0.4f;
 
         if (scale > mMaxPossibleScale)
