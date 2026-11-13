@@ -227,6 +227,68 @@ TEST_CASE("RoadPlaneScaleEstimator estimates scale from tracked planar road poin
     CHECK(temporalScaleFilter.update(missingMeasurements).value() == nextScale.value());
 }
 
+TEST_CASE("RoadPlaneScaleEstimator recovers forward motion with projectively normalized homographies")
+{
+    auto tracker = makeKeypointTracker();
+    const auto camera = makeCameraConfig();
+    constexpr float expectedScale = 0.6f;
+    float roadTilt = 0;
+    float cameraPitch = 0;
+    float direction = 1;
+    SECTION("level road") {}
+    SECTION("tilted road") { roadTilt = 0.12f; }
+    SECTION("camera pitching") { cameraPitch = 0.02f; }
+    SECTION("tilted road and camera pitching") { roadTilt = 0.12f; cameraPitch = 0.02f; }
+    SECTION("reverse motion") { direction = -1; }
+    CAPTURE(roadTilt, cameraPitch, direction);
+
+    const cv::Matx33f rotation(1, 0, 0,
+                             0, std::cos(cameraPitch), -std::sin(cameraPitch),
+                             0, std::sin(cameraPitch), std::cos(cameraPitch));
+    const cv::Matx31f normal(0, -std::cos(roadTilt), -std::sin(roadTilt));
+    // Motion tangent to the plane preserves camera height in both frames.
+    const cv::Matx31f translation = -direction * rotation * cv::Matx31f(0, -std::sin(roadTilt), std::cos(roadTilt));
+    const auto homography = makePlanarPixelHomography(camera, rotation, translation, normal, expectedScale);
+    REQUIRE(std::abs(homography(2, 2) - 1.0f) > 0.05f);
+
+    std::vector<cv::Point2f> previousPoints;
+    for (int y = 300; y <= 405; y += 35)
+    {
+        for (int x = 150; x <= 500; x += 50)
+        {
+            previousPoints.emplace_back(x, y);
+        }
+    }
+    const cv::Size imageSize(640, 480);
+    const auto currentPoints = warpPoints(homography, previousPoints);
+    // Non-repeating texture avoids ambiguous matches between identical grid markers.
+    cv::Mat texture(120, 160, CV_8UC1);
+    cv::RNG rng(42);
+    rng.fill(texture, cv::RNG::UNIFORM, 0, 256);
+    cv::Mat previousFrame;
+    cv::resize(texture, previousFrame, imageSize, 0, 0, cv::INTER_CUBIC);
+    cv::GaussianBlur(previousFrame, previousFrame, cv::Size(3, 3), 0.8);
+    cv::Mat currentFrame;
+    cv::warpPerspective(previousFrame, currentFrame, cv::Mat(homography), imageSize);
+    const cv::Mat roadMask(imageSize, CV_8UC1, cv::Scalar(0));
+    tracker->setPreviousFrame(previousFrame);
+    tracker->setCurrentFrame(currentFrame);
+    armvo::RoadPlaneScaleEstimator estimator(camera, *tracker);
+    estimator.initialize({makeKeypoints(previousPoints), roadMask});
+    estimator.setCurrentFrameData({makeKeypoints(currentPoints), roadMask});
+
+    const auto measurements = estimator.estimate(rotation, translation);
+    REQUIRE(measurements.size() == 2);
+    // Check each direction independently: fusion can conceal opposing scale biases.
+    for (const auto& measurement : measurements)
+    {
+        // Allow 5% for image resampling and optical-flow error in this end-to-end test.
+        CHECK(measurement.value == Approx(expectedScale).margin(0.03f));
+        CHECK(std::isfinite(measurement.weight));
+        CHECK(measurement.weight > 0);
+    }
+}
+
 TEST_CASE("RoadPlaneScaleEstimator returns no scale when no road points are available")
 {
     auto tracker = makeKeypointTracker();
