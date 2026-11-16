@@ -82,6 +82,8 @@ Download the [color odometry images](https://s3.eu-central-1.amazonaws.com/avg-k
 
 To evaluate accuracy, download the [ground-truth poses](https://s3.eu-central-1.amazonaws.com/avg-kitti/data_odometry_poses.zip) and add `--gt_poses=path/to/poses/00.txt` to the above command.
 
+The CLI reports FPS stats and accuracy (when ground truth is provided); see `--help` for additional options.
+
 ## How to use ARM-VO in your project?
 
 Check the [C++ example](examples/cpp) or [Python example](examples/python) to see how to use ARM-VO in your project.
