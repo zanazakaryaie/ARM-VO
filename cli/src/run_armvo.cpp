@@ -1,11 +1,17 @@
+#include <algorithm>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
+#include <numeric>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
+
+#include <opencv2/core/persistence.hpp>
 
 #include "cxxopts.hpp"
 
@@ -18,9 +24,21 @@ namespace fs = std::filesystem;
 
 class CLI
 {
-    static constexpr float kPi = 3.14159265358979323846f;
+    struct Stats
+    {
+        std::optional<double> minFps;
+        std::optional<double> maxFps;
+        std::optional<double> medianFps;
+        std::optional<double> meanFps;
+        std::optional<double> throughputFps;
+        std::optional<double> translationError;
+        std::optional<double> rotationError;
+    };
 
-    float mSumFps = 0.f;
+    static constexpr float kPi = 3.14159265358979323846f;
+    static constexpr int32_t kWarmupFrames = 5;
+
+    std::vector<std::chrono::microseconds> mFrameProcessingTimes;
     cv::Mat mFrame;
     std::vector<armvo::Pose> mEstimatedPoses;
     std::vector<armvo::Pose> mGroundTruthPoses;
@@ -41,6 +59,7 @@ public:
             ("c,config", "Path to .yaml config file", cxxopts::value<std::string>())
             ("g,gt_poses", "Path to .txt file that stores the ground-truth poses (optional)", cxxopts::value<std::string>())
             ("d,display", "Enable/Disable the camera view and trajectory", cxxopts::value<bool>()->default_value("true"))
+            ("s,stats_output_file", "Write summary statistics to a JSON file", cxxopts::value<std::string>())
             ("help", "Print help");
 
         auto result = options.parse(argc, argv);
@@ -82,7 +101,9 @@ public:
         auto config = armvo::ArmVoConfig::load(configFilepath);
         armvo::ArmVo VO(config);
 
+        const std::string statsPath = result.count("stats_output_file") ? result["stats_output_file"].as<std::string>() : "";
         mEstimatedPoses.reserve(filepaths.size());
+        mFrameProcessingTimes.reserve(filepaths.size());
         bool isDisplayEnabled = result["display"].as<bool>();
         for (const auto& filepath : filepaths)
         {
@@ -99,7 +120,12 @@ public:
         }
         std::cout << "\nFinished" << std::endl;
 
-        printStats(filepaths.size());
+        const auto stats = calculateStats();
+        printStats(stats);
+        if (!statsPath.empty())
+        {
+            writeStats(statsPath, stats);
+        }
 
         return 0;
     }
@@ -112,12 +138,14 @@ private:
         mCurrentFrameIndex++;
         bool logNewLine = false;
 
-        const auto t0 = std::chrono::high_resolution_clock::now();
+        std::chrono::microseconds processingTime{0};
         armvo::Pose estimatedPose;
 
         if (!VO.isInitialized())
         {
+            const auto t0 = std::chrono::steady_clock::now();
             const auto status = VO.initialize(mFrame, estimatedPose);
+            processingTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0);
             switch (status)
             {
                 case armvo::Status::SUCCESS:
@@ -140,7 +168,9 @@ private:
         }
         else
         {
+            const auto t0 = std::chrono::steady_clock::now();
             const auto status = VO.update(mFrame, estimatedPose);
+            processingTime = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - t0);
             switch (status)
             {
                 case armvo::Status::SUCCESS:
@@ -167,15 +197,21 @@ private:
             }
         }
 
-        const auto t1 = std::chrono::high_resolution_clock::now();
-        const auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
-
         mEstimatedPoses.push_back(estimatedPose);
+        if (mCurrentFrameIndex > kWarmupFrames && processingTime.count() > 0)
+        {
+            mFrameProcessingTimes.push_back(processingTime);
+        }
 
-        const float fps = 1000.f / duration;
-        mSumFps += fps;
-
-        std::cout << "FPS: " << std::fixed << std::setprecision(2) << fps;
+        std::cout << "FPS: ";
+        if (processingTime.count() > 0)
+        {
+            std::cout << std::fixed << std::setprecision(2) << 1'000'000.0 / processingTime.count();
+        }
+        else
+        {
+            std::cout << "N/A";
+        }
         if (logNewLine)
         {
             std::cout << "\n";
@@ -197,31 +233,99 @@ private:
         mPlotter.plot();
     }
 
-    void printStats(uint32_t numFrames)
+    Stats calculateStats()
     {
-        std::cout << "=======================================" << std::endl;
-        std::cout << "Average FPS: " << std::fixed << std::setprecision(2) << 1.0f*mSumFps/numFrames << std::endl;
+        Stats stats;
+        if (!mFrameProcessingTimes.empty())
+        {
+            std::vector<double> fps;
+            fps.reserve(mFrameProcessingTimes.size());
+            for (const auto processingTime : mFrameProcessingTimes)
+            {
+                fps.push_back(1'000'000.0 / processingTime.count());
+            }
+            std::sort(fps.begin(), fps.end());
+            stats.minFps = fps.front();
+            stats.maxFps = fps.back();
+            const size_t mid = fps.size() / 2;
+            stats.medianFps = fps.size() % 2 ? fps[mid] : (fps[mid - 1] + fps[mid]) / 2.0;
+            stats.meanFps = std::accumulate(fps.begin(), fps.end(), 0.0) / fps.size();
+            const auto totalTime = std::accumulate(mFrameProcessingTimes.begin(), mFrameProcessingTimes.end(),
+                                                   std::chrono::microseconds{0});
+            stats.throughputFps = mFrameProcessingTimes.size() * 1'000'000.0 / totalTime.count();
+        }
 
         if (!mGroundTruthPoses.empty())
         {
             const auto errors = mErrorEstimator.estimate(mEstimatedPoses, mGroundTruthPoses);
-            if (errors.empty())
+            if (!errors.empty())
             {
-                std::cout << "No KITTI error segments available for this trajectory length" << std::endl;
-                return;
+                double translation = 0.0, rotation = 0.0;
+                for (const auto& err : errors)
+                {
+                    translation += err.translationErr;
+                    rotation += err.rotationErr;
+                }
+                stats.translationError = translation * 100.0 / errors.size();
+                stats.rotationError = rotation * 180.0 / (errors.size() * kPi);
             }
-
-            float avgRotationError = 0.f;
-            float avgTranslationError = 0.f;
-            for (const auto& err : errors)
-            {
-                avgRotationError += err.rotationErr;
-                avgTranslationError += err.translationErr;
-            }
-            std::cout << "Average Rotation Error: " << std::setprecision(4) << (avgRotationError * 180.f) / (errors.size() * kPi) << " [deg/m]" << std::endl;
-            std::cout << "Average Translation Error: " << std::setprecision(4) << avgTranslationError*100.f/errors.size() << "%" << std::endl;
         }
+
+        return stats;
     }
+
+    void printStats(const Stats& stats)
+    {
+        const auto printValue = [](const char* label, const std::optional<double>& value, const char* unit = "")
+        {
+            std::cout << label;
+            if (value)
+            {
+                std::cout << *value << unit;
+            }
+            else
+            {
+                std::cout << "N/A";
+            }
+            std::cout << '\n';
+        };
+        std::cout << "\n=======================================\n"
+                  << std::fixed << std::setprecision(2);
+        printValue("Min FPS: ", stats.minFps);
+        printValue("Max FPS: ", stats.maxFps);
+        printValue("Median FPS: ", stats.medianFps);
+        printValue("Average FPS: ", stats.meanFps);
+        printValue("Throughput FPS: ", stats.throughputFps);
+        std::cout << std::setprecision(4);
+        printValue("Average Translation Error: ", stats.translationError, "%");
+        printValue("Average Rotation Error: ", stats.rotationError, " [deg/m]");
+        std::cout << std::flush;
+    }
+
+    void writeStats(const std::string& statsPath, const Stats& stats)
+    {
+        cv::FileStorage out(statsPath, cv::FileStorage::WRITE | cv::FileStorage::FORMAT_JSON);
+        if (!out.isOpened())
+        {
+            throw std::runtime_error("Cannot open stats output file: " + statsPath);
+        }
+
+        const auto writeValue = [&out](const char* key, const std::optional<double>& value)
+        {
+            if (value && std::isfinite(*value))
+            {
+                out << key << *value;
+            }
+        };
+        writeValue("fps_min", stats.minFps);
+        writeValue("fps_max", stats.maxFps);
+        writeValue("fps_median", stats.medianFps);
+        writeValue("fps_mean", stats.meanFps);
+        writeValue("fps_throughput", stats.throughputFps);
+        writeValue("translation_error_percent", stats.translationError);
+        writeValue("rotation_error_deg_per_m", stats.rotationError);
+    }
+
 };
 
 int main(int argc, char* argv[])
