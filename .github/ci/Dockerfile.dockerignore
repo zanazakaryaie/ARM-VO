@@ -1,0 +1,10 @@
+**
+!3rd-party/
+!3rd-party/**
+!cmake/
+!cmake/**
+!.github/
+!.github/ci/
+!.github/ci/CMakeLists.txt
+!.github/ci/Dockerfile
+!.github/ci/Dockerfile.dockerignore

@@ -5,6 +5,10 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   static-analysis:
@@ -44,6 +48,10 @@ jobs:
   build-and-test:
     name: Build and test (${{ matrix.arch }})
     needs: static-analysis
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -55,29 +63,59 @@ jobs:
     runs-on: ${{ matrix.runner }}
 
     steps:
-      - name: Install dependencies
-        run: |
-          echo "::group::CMake and Build Tools"
-          sudo apt-get update
-          sudo apt install -y --no-install-recommends build-essential git cmake pkg-config
-          echo "::endgroup::"
-
-          echo "::group::Prebuilt OpenCV and ncnn conversion tool dependencies"
-          sudo apt install -y --no-install-recommends libopencv-dev libprotobuf-dev protobuf-compiler
-          echo "::endgroup::"
-
-          echo "::group::Python bindings"
-          sudo apt install -y --no-install-recommends python3-dev python3-numpy pybind11-dev
-          echo "::endgroup::"
-
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Select dependency image
+        env:
+          DEPENDENCY_HASH: ${{ hashFiles('.github/ci/Dockerfile', '.github/ci/Dockerfile.dockerignore', '.github/ci/CMakeLists.txt', '3rd-party/**', 'cmake/**') }}
+          ARCH: ${{ matrix.arch }}
+        run: |
+          echo "CI_IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}/ci-deps:${ARCH}-${DEPENDENCY_HASH}" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+
+      - name: Pull or build dependency image
+        id: image
+        run: |
+          if docker pull "$CI_IMAGE"; then
+            echo "built=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Dependency image unavailable; building it from source."
+            docker build --file .github/ci/Dockerfile \
+              --build-arg "SOURCE_URL=https://github.com/$GITHUB_REPOSITORY" \
+              --tag "$CI_IMAGE" .
+            echo "built=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Build
         run: |
-          mkdir build && cd build
-          cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=ON -DBUILD_PYTHON_BINDINGS=ON ..
-          make -j$(nproc)
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            "$CI_IMAGE" bash -euc '
+              cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+                -DINFERENCE_BACKEND=NCNN -DBUILD_TESTS=ON -DBUILD_PYTHON_BINDINGS=ON
+              cmake --build build --parallel "$(nproc)"
+            '
 
       - name: Run tests
-        run: ctest --test-dir build/_armvo --output-on-failure
+        run: |
+          docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            "$CI_IMAGE" ctest --test-dir build/_armvo --output-on-failure --no-tests=error
+
+      - name: Publish dependency image
+        if: steps.image.outputs.built == 'true' && github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        run: docker push "$CI_IMAGE"
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io
