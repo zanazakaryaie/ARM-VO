@@ -47,12 +47,17 @@ cd ..
 
 | Option | Default | Purpose | Extra dependencies |
 |---|---|---|---|
-| `INFERENCE_BACKEND` | `AUTO` | Explicit selection for inference backend; You can set it to `NCNN` or `TENSORRT` or `AUTO` (prefers TensorRT over Ncnn when available) | `TENSORRT` requires an installed TensorRT 8.6.x with `trtexec` and the CUDA toolkit |
+| `INFERENCE_BACKEND` | `AUTO` | Explicit selection for inference backend; You can set it to `NCNN` or `TENSORRT` or `AUTO` (prefers TensorRT over Ncnn when available) | `TENSORRT` requires an installed TensorRT 8.6.x with `trtexec`, the CUDA toolkit and a compatible GPU at build time. ncnn conversion runs on the CPU and requires host executables `onnx2ncnn` and `ncnnoptimize` (included in the bundled native ncnn build). |
+| `SEG_WIDTH` | `640` | Segmentation input width in pixels, a positive multiple of 32 | None |
+| `SEG_HEIGHT` | `320` | Segmentation input height in pixels, a positive multiple of 32 | None |
+| `SEG_PRECISION` | `fp32` | Segmentation model precision, either `fp32` or `fp16` | None |
 | `BUILD_TOOLS` | `ON` | Visualization, evaluation, and model conversion utilities | None |
 | `BUILD_CLI` | `ON` | Command-line tools; requires `BUILD_TOOLS=ON` | None |
 | `BUILD_PYTHON_BINDINGS` | `OFF` | Python API | `python3 -m pip install pybind11 numpy` |
 | `BUILD_TESTS` | `OFF` | Unit tests | Catch2 v2.13.10: automatically detected if available, otherwise fetched and built by CMake. |
 
+
+The segmentation settings replace the `convert_onnx2ncnn` CLI. The deprecated C++ `armvo::tools::Onnx2NcnnConverter` remains available for calibration.
 
 #### Uninstall
 

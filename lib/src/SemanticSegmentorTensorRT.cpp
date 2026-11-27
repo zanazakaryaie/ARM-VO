@@ -88,18 +88,21 @@ bool hasDynamicDim(const nvinfer1::Dims& dims)
     return false;
 }
 
-size_t volume(const nvinfer1::Dims& dims)
+cv::Size imageSize(const nvinfer1::Dims& dims, int channels)
 {
-    size_t result = 1;
-    for (int i = 0; i < dims.nbDims; i++)
+    if ((dims.nbDims != 3 && dims.nbDims != 4) ||
+        (dims.nbDims == 4 && dims.d[0] != 1) ||
+        dims.d[dims.nbDims - 3] != channels)
     {
-        if (dims.d[i] < 0)
-        {
-            throw std::runtime_error("TensorRT binding dimensions are not fully specified");
-        }
-        result *= static_cast<size_t>(dims.d[i]);
+        throw std::runtime_error("Unexpected TensorRT segmentation tensor layout");
     }
-    return result;
+
+    const cv::Size size(dims.d[dims.nbDims - 1], dims.d[dims.nbDims - 2]);
+    if (size.width <= 0 || size.height <= 0)
+    {
+        throw std::runtime_error("Invalid TensorRT segmentation tensor dimensions");
+    }
+    return size;
 }
 
 void checkCuda(cudaError_t status, const char* message)
@@ -125,10 +128,7 @@ class SemanticSegmentorTensorRT::Impl
     std::vector<float> mOutput;
     cv::Mat mSegmentationMap;
 
-    int mModelInputWidth = 640;
-    int mModelInputHeight = 320;
-    int mModelOutputWidth = 640;
-    int mModelOutputHeight = 320;
+    cv::Size mModelSize;
 
 public:
 
@@ -136,16 +136,13 @@ public:
     {
         initLibNvInferPlugins(&mLogger, "");
 
-        const fs::path dir = modelDir();
-        loadShape(dir / "model.shape");
-
         mRuntime.reset(nvinfer1::createInferRuntime(mLogger));
         if (mRuntime == nullptr)
         {
             throw std::runtime_error("Failed to create TensorRT runtime");
         }
 
-        const std::vector<char> engineData = readFile(dir / "model.engine");
+        const std::vector<char> engineData = readFile(modelDir() / "model.engine");
         mEngine.reset(mRuntime->deserializeCudaEngine(engineData.data(), engineData.size()));
         if (mEngine == nullptr)
         {
@@ -163,19 +160,23 @@ public:
         nvinfer1::Dims inputDims = mEngine->getTensorShape(kModelInputName);
         if (hasDynamicDim(inputDims))
         {
-            inputDims = fixedInputDims(inputDims);
-            if (!mContext->setInputShape(kModelInputName, inputDims))
+            inputDims = mEngine->getProfileShape(kModelInputName, 0, nvinfer1::OptProfileSelector::kOPT);
+            if (inputDims.nbDims < 0 || !mContext->setInputShape(kModelInputName, inputDims))
             {
                 throw std::runtime_error("Failed to set TensorRT input dimensions");
             }
         }
 
-        const nvinfer1::Dims outputDims = mContext->getTensorShape(kModelOutputName);
-        updateOutputShape(outputDims);
+        mModelSize = imageSize(inputDims, 3);
+        if (imageSize(mContext->getTensorShape(kModelOutputName), kModelOutputChannels) != mModelSize)
+        {
+            throw std::runtime_error("TensorRT segmentation input and output sizes differ");
+        }
 
-        mInput.resize(static_cast<size_t>(3 * mModelInputHeight * mModelInputWidth));
-        mOutput.resize(volume(outputDims));
-        mSegmentationMap.create(mModelOutputHeight, mModelOutputWidth, CV_8UC1);
+        const size_t pixels = static_cast<size_t>(mModelSize.width) * mModelSize.height;
+        mInput.resize(3 * pixels);
+        mOutput.resize(kModelOutputChannels * pixels);
+        mSegmentationMap.create(mModelSize, CV_8UC1);
 
         void* deviceInput = nullptr;
         void* deviceOutput = nullptr;
@@ -252,19 +253,6 @@ private:
         return libPath.parent_path() / "armvo" / "model";
     }
 
-    void loadShape(const fs::path& shapeFilepath)
-    {
-        std::ifstream shapeFilehandle(shapeFilepath.string());
-        if (!shapeFilehandle)
-        {
-            throw std::runtime_error("Failed to load TensorRT model shape info");
-        }
-
-        shapeFilehandle >> mModelInputHeight >> mModelInputWidth;
-        mModelOutputHeight = mModelInputHeight;
-        mModelOutputWidth = mModelInputWidth;
-    }
-
     static std::vector<char> readFile(const fs::path& filepath)
     {
         std::ifstream file(filepath, std::ios::binary | std::ios::ate);
@@ -328,67 +316,22 @@ private:
         }
     }
 
-    nvinfer1::Dims fixedInputDims(nvinfer1::Dims dims) const
-    {
-        if (dims.nbDims == 4)
-        {
-            dims.d[0] = 1;
-            dims.d[1] = 3;
-            dims.d[2] = mModelInputHeight;
-            dims.d[3] = mModelInputWidth;
-        }
-        else if (dims.nbDims == 3)
-        {
-            dims.d[0] = 3;
-            dims.d[1] = mModelInputHeight;
-            dims.d[2] = mModelInputWidth;
-        }
-        else
-        {
-            throw std::runtime_error("TensorRT input binding has unsupported dimensions");
-        }
-        return dims;
-    }
-
-    void updateOutputShape(const nvinfer1::Dims& dims)
-    {
-        if (dims.nbDims < 3)
-        {
-            throw std::runtime_error("TensorRT output binding has unsupported dimensions");
-        }
-
-        if (dims.nbDims == 4 && dims.d[0] != 1)
-        {
-            throw std::runtime_error("TensorRT output binding has unsupported batch size");
-        }
-
-        const int channels = dims.d[dims.nbDims - 3];
-        mModelOutputHeight = dims.d[dims.nbDims - 2];
-        mModelOutputWidth = dims.d[dims.nbDims - 1];
-
-        if (channels != kModelOutputChannels ||
-            mModelOutputHeight != mModelInputHeight ||
-            mModelOutputWidth != mModelInputWidth)
-        {
-            throw std::runtime_error("TensorRT output binding has unexpected shape");
-        }
-    }
-
     void preprocess(const cv::Mat& frame, PixelFormat pixelFormat)
     {
         cv::Mat resized;
-        cv::resize(frame, resized, cv::Size(mModelInputWidth, mModelInputHeight), 0, 0, cv::INTER_LINEAR);
+        cv::resize(frame, resized, mModelSize, 0, 0, cv::INTER_LINEAR);
 
         float* rPlane = mInput.data();
-        float* gPlane = rPlane + mModelInputHeight * mModelInputWidth;
-        float* bPlane = gPlane + mModelInputHeight * mModelInputWidth;
+        const size_t pixels = mInput.size() / 3;
+        float* gPlane = rPlane + pixels;
+        float* bPlane = gPlane + pixels;
 
-        for (int y = 0; y < mModelInputHeight; y++)
+        for (int y = 0; y < mModelSize.height; y++)
         {
             const uint8_t* row = resized.ptr<uint8_t>(y);
-            for (int x = 0; x < mModelInputWidth; x++)
+            for (int x = 0; x < mModelSize.width; x++)
             {
-                const size_t index = static_cast<size_t>(y * mModelInputWidth + x);
+                const size_t index = static_cast<size_t>(y) * mModelSize.width + x;
 
                 uint8_t r = 0;
                 uint8_t g = 0;
@@ -427,13 +370,13 @@ private:
 
     void argmax()
     {
-        const size_t channelStride = static_cast<size_t>(mModelOutputHeight * mModelOutputWidth);
-        for (int y = 0; y < mModelOutputHeight; y++)
+        const size_t channelStride = mOutput.size() / kModelOutputChannels;
+        for (int y = 0; y < mModelSize.height; y++)
         {
             uint8_t* map = mSegmentationMap.ptr<uint8_t>(y);
-            for (int x = 0; x < mModelOutputWidth; x++)
+            for (int x = 0; x < mModelSize.width; x++)
             {
-                const size_t pixelIndex = static_cast<size_t>(y * mModelOutputWidth + x);
+                const size_t pixelIndex = static_cast<size_t>(y) * mModelSize.width + x;
                 int bestClass = 0;
                 float bestProb = mOutput[pixelIndex];
                 for (int c = 1; c < kModelOutputChannels; c++)

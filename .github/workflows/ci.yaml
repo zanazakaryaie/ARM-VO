@@ -58,8 +58,10 @@ jobs:
         include:
           - arch: x86_64
             runner: ubuntu-24.04
+            segmentation_args: ""
           - arch: arm64
             runner: ubuntu-24.04-arm
+            segmentation_args: "-DSEG_WIDTH=320 -DSEG_HEIGHT=160 -DSEG_PRECISION=fp16"
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -95,14 +97,18 @@ jobs:
           fi
 
       - name: Build
+        env:
+          SEGMENTATION_ARGS: ${{ matrix.segmentation_args }}
         run: |
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             --volume "$GITHUB_WORKSPACE:/workspace" \
+            --env SEGMENTATION_ARGS \
             "$CI_IMAGE" bash -euc '
-              cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
-                -DINFERENCE_BACKEND=NCNN -DBUILD_TESTS=ON -DBUILD_PYTHON_BINDINGS=ON
-              cmake --build build --parallel "$(nproc)"
+              mkdir -p build && cd build
+              cmake -DCMAKE_BUILD_TYPE=Release -DINFERENCE_BACKEND=NCNN \
+                -DBUILD_TESTS=ON -DBUILD_PYTHON_BINDINGS=ON $SEGMENTATION_ARGS ..
+              make -j"$(nproc)"
             '
 
       - name: Run tests
