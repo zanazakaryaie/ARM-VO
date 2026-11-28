@@ -298,6 +298,12 @@ TEST_CASE("estimateHomographyMatrix throws when there are too few correspondence
     CHECK_THROWS(armvo::estimateHomographyMatrix(points0, points1));
 }
 
+TEST_CASE("undistortPoints returns an empty vector for empty input")
+{
+    const cv::Mat distortions = cv::Mat::zeros(1, 5, CV_64F);
+    CHECK(armvo::undistortPoints({}, makeIntrinsics(), distortions).empty());
+}
+
 TEST_CASE("undistortPoints matches OpenCV's camera-space correction")
 {
     const cv::Matx33f intrinsics = makeIntrinsics();

@@ -1,6 +1,6 @@
 # ARM-VO
 
-ARM-VO is an efficient monocular visual odometry library for on-road vehicles. It recovers scale using a known, fixed camera height and visible road. NEON intrinsics and multithreading accelerate keypoint detection and tracking.
+ARM-VO is an efficient monocular visual odometry library for ground vehicles. Scale recovery requires a visible road or terrain and a known, fixed camera height. NEON intrinsics and multithreading accelerate keypoint detection and tracking.
 
 ## Results on KITTI dataset
 
@@ -43,6 +43,8 @@ sudo ldconfig
 cd ..
 ```
 
+Keep the build directory so you can [uninstall ARM-VO](#uninstall) later.
+
 #### Build Options
 
 | Option | Default | Purpose | Extra dependencies |
@@ -55,24 +57,6 @@ cd ..
 | `BUILD_CLI` | `ON` | Command-line tools; requires `BUILD_TOOLS=ON` | None |
 | `BUILD_PYTHON_BINDINGS` | `OFF` | Python API | `python3 -m pip install pybind11 numpy` |
 | `BUILD_TESTS` | `OFF` | Unit tests | Catch2 v2.13.10: automatically detected if available, otherwise fetched and built by CMake. |
-
-#### Uninstall
-
-Keep the build directory after installation: it contains the uninstall script
-and separate manifests for ARM-VO and dependencies installed by this build.
-From the build directory, uninstall ARM-VO:
-
-```bash
-sudo make uninstall
-sudo ldconfig
-```
-
-To also remove dependencies that ARM-VO built and installed:
-
-```bash
-sudo make uninstall-with-dependencies
-sudo ldconfig
-```
 
 ## Run on KITTI dataset
 
@@ -90,8 +74,24 @@ The CLI reports FPS stats and accuracy (when ground truth is provided); see `--h
 
 Check the [C++ example](examples/cpp) or [Python example](examples/python) to see how to use ARM-VO in your project.
 
+## Uninstall
+
+If you want to uninstall ARM-VO, run these commands from the build directory you used to install it.
+
+```bash
+sudo make uninstall
+sudo ldconfig
+```
+
+If you also want to remove dependencies that this build installed, use the following commands instead.
+
+```bash
+sudo make uninstall-with-dependencies
+sudo ldconfig
+```
+
 ## Limitations
-- The camera height and road requirements make ARM-VO unsuitable for drones, handheld cameras, or off-road vehicles.
+- The fixed camera height requirement makes ARM-VO unsuitable for drones and handheld cameras.
 - Large rotations without translation can lose tracking.
 
 ## Notes

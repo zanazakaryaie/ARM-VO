@@ -168,6 +168,10 @@ cv::Matx33f estimateHomographyMatrix(const std::vector<cv::Point2f>& points1, co
 
 std::vector<cv::Point2f> undistortPoints(const std::vector<cv::Point2f>& points, const cv::Matx33f& intrinsics, const cv::Mat& distortions)
 {
+    if (points.empty())
+    {
+        return {};
+    }
     std::vector<cv::Point2f> undistortedPoints;
     cv::undistortPoints(points, undistortedPoints, intrinsics, distortions, cv::noArray(), intrinsics);
     return undistortedPoints;
