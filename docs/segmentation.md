@@ -5,11 +5,11 @@ ARM-VO benefits from semantic segmentation of the scene in 2 ways:
 
 Scale estimation is done by:
 
-- Fitting a plane to road regions
+- Fitting a plane to keypoints on visible road or terrain
 - Computing the camera height above the fitted plane (let's call it H)
 - Dividing the actual camera height above ground (provided by user) to H
 
-Estimating the road plane is the real challenge here. ARM-VO 1 used some heuristics to find the road plane via the triangulated 3D points. But the relative position of frames in a forward-looking camera is not ideal for triangulation and the ill-posed geometry often induces large errors in the triangulated points. ARM-VO 2 ditches the 3D space and estimates the road plane in 2D (image space). To do so, it performs homography matrix estimation using road keypoints. A semantic segmentation algorithm that is able to identify road pixels is used to filter-out non-road keypoints.
+Estimating the ground plane is the real challenge here. ARM-VO 1 used some heuristics to find the road plane via the triangulated 3D points. But the relative position of frames in a forward-looking camera is not ideal for triangulation and the ill-posed geometry often induces large errors in the triangulated points. ARM-VO 2 estimates the ground-plane homography directly in image space using keypoints that semantic segmentation identifies as road or terrain.
 
 See [scale estimation](scale-estimation.md) for further details.
 
@@ -17,7 +17,7 @@ See [scale estimation](scale-estimation.md) for further details.
 It's obvious that dynamic scenes can fool the motion estimation algorithm. Even RANSAC can fail if more than half of the keypoints belong to moving objects. ARM-VO uses the segmentation map to favor static keypoints over possibly-dynamic points. Any keypoint detected on road, sidewalks, walls, buildings, etc are considered static. Keypoints detected on cars, bikes, pedestrians, etc are considered possibly-dynamic.
 
 ## 2- What Segmentation algorithm is used?
-ARM-VO uses BisenetV2 which is a popular model known for its runtime efficiency. Fortunately, I could find pre-trained weights on cityscapes dataset [link](https://github.com/CoinCheung/BiSeNet) and results on KITTI are good-enough. Note that Homography and Fundamental matrix estimations are robust to a level of outliers thanks to using RANSAC. Therefore, a rough segmentation map would be enough to classify keypoints into 1) road vs non-road, and 2) static vs non-static. I went a step further and downscaled the model from 512x1024 to 320x640 which reduced the runtime significantly while still producing good-enough results.
+ARM-VO uses BisenetV2 which is a popular model known for its runtime efficiency. Fortunately, I could find pre-trained weights on cityscapes dataset [link](https://github.com/CoinCheung/BiSeNet) and results on KITTI are good-enough. Note that Homography and Fundamental matrix estimations are robust to a level of outliers thanks to using RANSAC. A rough segmentation map is enough to select road or terrain keypoints for scale estimation and favor static keypoints for motion estimation. I went a step further and downscaled the model from 512x1024 to 320x640 which reduced the runtime significantly while still producing good-enough results.
 
 ## 3- How do I change the segmentation resolution?
 

@@ -21,6 +21,7 @@ class RoadPlaneScaleEstimator::Impl
     cv::Matx33f mKinv;
     KeypointSampler mKeypointSampler;
     static constexpr uint8_t ROAD_LABEL = 0;
+    static constexpr uint8_t TERRAIN_LABEL = 9;
     static constexpr uint32_t NUM_ROAD_POINTS_TO_USE = 100;
 
     std::vector<cv::Point2f> mPrevRoadPoints;
@@ -41,30 +42,12 @@ public:
 
     void initialize(const ScaleEstimationInput& frame)
     {
-        const cv::Mat roadMask = frame.segmentationMap == ROAD_LABEL;
-        std::vector<cv::Point2f> rawRoadPoints = mKeypointSampler.run(frame.keypoints, roadMask, NUM_ROAD_POINTS_TO_USE);
-        if (mCamConfig.distortions.has_value())
-        {
-            mPrevRoadPoints = undistortPoints(rawRoadPoints, mCamConfig.intrinsics, mCamConfig.distortions.value());
-        }
-        else
-        {
-            mPrevRoadPoints = std::move(rawRoadPoints);
-        }
+        mPrevRoadPoints = getRoadPoints(frame);
     }
 
     void setCurrentFrameData(const ScaleEstimationInput& frame)
     {
-        const cv::Mat roadMask = frame.segmentationMap == ROAD_LABEL;
-        std::vector<cv::Point2f> rawRoadPoints = mKeypointSampler.run(frame.keypoints, roadMask, NUM_ROAD_POINTS_TO_USE);
-        if (mCamConfig.distortions.has_value())
-        {
-            mCurrRoadPoints = undistortPoints(rawRoadPoints, mCamConfig.intrinsics, mCamConfig.distortions.value());
-        }
-        else
-        {
-            mCurrRoadPoints = std::move(rawRoadPoints);
-        }
+        mCurrRoadPoints = getRoadPoints(frame);
     }
 
     std::vector<ScaleMeasurement> estimate(const cv::Matx33f& rotation, const cv::Matx31f& translation)
@@ -89,6 +72,22 @@ public:
     }
 
 private:
+
+    std::vector<cv::Point2f> getRoadPoints(const ScaleEstimationInput& frame)
+    {
+        cv::Mat roadMask = frame.segmentationMap == ROAD_LABEL;
+        std::vector<cv::Point2f> rawRoadPoints = mKeypointSampler.run(frame.keypoints, roadMask, NUM_ROAD_POINTS_TO_USE);
+        if (rawRoadPoints.size() < 10)
+        {
+            roadMask |= frame.segmentationMap == TERRAIN_LABEL;
+            rawRoadPoints = mKeypointSampler.run(frame.keypoints, roadMask, NUM_ROAD_POINTS_TO_USE);
+        }
+        if (mCamConfig.distortions.has_value())
+        {
+            return undistortPoints(rawRoadPoints, mCamConfig.intrinsics, mCamConfig.distortions.value());
+        }
+        return rawRoadPoints;
+    }
 
     std::optional<ScaleMeasurement> estimateForward(const cv::Matx33f& rotation, const cv::Matx31f& translation)
     {
