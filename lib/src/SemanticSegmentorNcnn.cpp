@@ -202,15 +202,15 @@ private:
 
         // The argmax below reads FP32 logits from the output blob.
         opt.use_bf16_storage = false;
+        opt.use_fp16_packed = ARMVO_NCNN_FP16;
+        opt.use_fp16_storage = ARMVO_NCNN_FP16;
+        opt.use_fp16_arithmetic = ARMVO_NCNN_FP16;
 
 #if NCNN_VULKAN
         if (ncnn::get_gpu_count() > 0)
         {
             opt.use_vulkan_compute = true;
 
-            opt.use_fp16_packed = true;
-            opt.use_fp16_storage = true;
-            opt.use_fp16_arithmetic = true;
             opt.use_int8_packed = true;
             opt.use_int8_storage = true;
             opt.use_int8_arithmetic = true;

@@ -53,7 +53,8 @@ enum class ModelConversionStatus : uint8_t
 };
 
 /// @brief Converts ONNX models into NCNN param/bin files
-class Onnx2NcnnConverter
+class [[deprecated("Configure the segmentation model with SEG_WIDTH, SEG_HEIGHT and SEG_PRECISION in CMake")]]
+Onnx2NcnnConverter
 {
 public:
     Onnx2NcnnConverter();

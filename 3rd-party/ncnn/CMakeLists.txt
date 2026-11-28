@@ -17,12 +17,17 @@ string(TOUPPER "${CMAKE_BUILD_TYPE}" ncnn_build_type)
 if(ncnn_build_type STREQUAL "DEBUG")
     set(ncnn_archive lib/libncnnd.a)
 endif()
+# Conversion runs on the host, including when the ARM-VO tools library is disabled.
+set(build_ncnn_tools ON)
+if(CMAKE_CROSSCOMPILING)
+    set(build_ncnn_tools OFF)
+endif()
 set(options ${ARMVO_EXTERNAL_CMAKE_ARGS}
     -DNCNN_VERSION:STRING=20241226
     -DNCNN_BUILD_TESTS:BOOL=OFF
     -DNCNN_BUILD_EXAMPLES:BOOL=OFF
     -DNCNN_BUILD_BENCHMARK:BOOL=OFF
-    "-DNCNN_BUILD_TOOLS:BOOL=${BUILD_TOOLS}"
+    "-DNCNN_BUILD_TOOLS:BOOL=${build_ncnn_tools}"
     -DNCNN_PYTHON:BOOL=OFF
     -DNCNN_THREADS:BOOL=ON
     -DNCNN_OPENMP:BOOL=OFF
@@ -47,6 +52,10 @@ set(ready "${root}/ready")
 set(required_files "${ready}" "${root}/build/cmake_install.cmake"
     "${prefix}/lib/cmake/ncnn/ncnnConfig.cmake"
     "${prefix}/${ncnn_archive}")
+if(build_ncnn_tools)
+    list(APPEND ARMVO_PACKAGE_ARGS "-DARMVO_NCNN_HOST_BINDIR:PATH=${prefix}/bin")
+    list(APPEND required_files "${prefix}/bin/onnx2ncnn" "${prefix}/bin/ncnnoptimize")
+endif()
 set(cached TRUE)
 foreach(path IN LISTS required_files)
     if(NOT EXISTS "${path}")
@@ -59,7 +68,8 @@ if(cached)
 else()
     message(STATUS "Will build ncnn ${version} in ${root}")
     # Retry an incomplete cache; the dependency's own make reuses object files.
-    file(REMOVE "${root}/stamps/armvo_dep_ncnn-build"
+    file(REMOVE "${root}/stamps/armvo_dep_ncnn-configure"
+                "${root}/stamps/armvo_dep_ncnn-build"
                 "${root}/stamps/armvo_dep_ncnn-install")
     # Filter after computing the cache key to preserve existing cached builds.
     # This compatibility setting only exists in CMake 4 and newer.

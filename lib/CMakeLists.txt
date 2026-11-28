@@ -74,37 +74,33 @@ if(BUILD_TESTS)
     add_subdirectory(tests)
 endif()
 
+set(model_onnx "${PROJECT_SOURCE_DIR}/model/model.onnx")
+set(model_dir "${CMAKE_CURRENT_BINARY_DIR}/model/${SEG_PRECISION}")
+
 if(ARMVO_USE_TENSORRT)
     include(ConvertOnnxToTrt)
-
-    set(ARMVO_TENSORRT_ENGINE "${CMAKE_CURRENT_BINARY_DIR}/model/model.engine")
-    convertOnnxToTrt(
-        TARGET ArmVO_tensorrt_engine
-        OUTPUT "${ARMVO_TENSORRT_ENGINE}"
-        ONNX "${PROJECT_SOURCE_DIR}/model/model.onnx"
-        MODEL_SHAPE "${PROJECT_SOURCE_DIR}/model/model.shape"
-        INPUT_NAME input_image
-    )
-    add_dependencies(ArmVO ArmVO_tensorrt_engine)
+    # Include the profile size in the output path so Make also rebuilds on a resolution change.
+    set(model_dir "${model_dir}/${SEG_WIDTH}x${SEG_HEIGHT}")
+    convertOnnxToTrt("${model_onnx}" "${model_dir}")
+    set(model_files "${model_dir}/model.engine")
+else()
+    include(ConvertOnnxToNcnn)
+    convertOnnxToNcnn("${model_onnx}" "${model_dir}")
+    file(CONFIGURE OUTPUT "${model_dir}/model.shape" CONTENT "@SEG_HEIGHT@ @SEG_WIDTH@\n" @ONLY)
+    set(model_files "${model_dir}/model.param" "${model_dir}/model.bin" "${model_dir}/model.shape")
+    set_property(SOURCE src/SemanticSegmentorNcnn.cpp APPEND PROPERTY
+        COMPILE_DEFINITIONS "ARMVO_NCNN_FP16=$<STREQUAL:${SEG_PRECISION},fp16>")
 endif()
 
-add_custom_command(TARGET ArmVO POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E rm -rf
-            "$<TARGET_FILE_DIR:ArmVO>/armvo/model"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-            "$<TARGET_FILE_DIR:ArmVO>/armvo"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${PROJECT_SOURCE_DIR}/model"
-            "$<TARGET_FILE_DIR:ArmVO>/armvo/model"
-    COMMENT "Staging armvo/model/ next to libArmVO for in-tree runs")
-
-if(ARMVO_USE_TENSORRT)
-    add_custom_command(TARGET ArmVO POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-                "${ARMVO_TENSORRT_ENGINE}"
-                "$<TARGET_FILE_DIR:ArmVO>/armvo/model/model.engine"
-        COMMENT "Staging TensorRT engine next to libArmVO")
-endif()
+# Stage even when only the model changed and ArmVO does not need to relink.
+set(staged_model_dir "$<TARGET_FILE_DIR:ArmVO>/armvo/model")
+add_custom_target(ArmVO_model
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${staged_model_dir}"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different ${model_files} "${staged_model_dir}"
+    DEPENDS ${model_files}
+    VERBATIM
+)
+add_dependencies(ArmVO ArmVO_model)
 
 install(TARGETS ArmVO
     EXPORT armvoTargets
@@ -115,17 +111,4 @@ install(TARGETS ArmVO
 
 install(DIRECTORY include/armvo DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-if(ARMVO_USE_TENSORRT)
-    install(FILES
-        "${ARMVO_TENSORRT_ENGINE}"
-        "${PROJECT_SOURCE_DIR}/model/model.shape"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/armvo/model"
-    )
-else()
-    install(FILES
-        "${PROJECT_SOURCE_DIR}/model/model.bin"
-        "${PROJECT_SOURCE_DIR}/model/model.param"
-        "${PROJECT_SOURCE_DIR}/model/model.shape"
-        DESTINATION "${CMAKE_INSTALL_LIBDIR}/armvo/model"
-    )
-endif()
+install(FILES ${model_files} DESTINATION "${CMAKE_INSTALL_LIBDIR}/armvo/model")

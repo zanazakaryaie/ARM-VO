@@ -19,16 +19,16 @@ It's obvious that dynamic scenes can fool the motion estimation algorithm. Even 
 ## 2- What Segmentation algorithm is used?
 ARM-VO uses BisenetV2 which is a popular model known for its runtime efficiency. Fortunately, I could find pre-trained weights on cityscapes dataset [link](https://github.com/CoinCheung/BiSeNet) and results on KITTI are good-enough. Note that Homography and Fundamental matrix estimations are robust to a level of outliers thanks to using RANSAC. Therefore, a rough segmentation map would be enough to classify keypoints into 1) road vs non-road, and 2) static vs non-static. I went a step further and downscaled the model from 512x1024 to 320x640 which reduced the runtime significantly while still producing good-enough results.
 
-## 3- How to improve accuracy?
-A higher-resolution network can improve segmentation accuracy, which may lead to better scale estimation and more robustness in dynamic scenes. BisenetV2 is a fully convolutional network and it is easy to export at the desired resolution as long as the dimensions are divisible by 32.
-The following steps show how to use a model that takes inputs of size 416x832:
+## 3- How do I change the segmentation resolution?
+
+Both backends default to 640×320 pixels and FP32. A higher resolution can improve segmentation accuracy at the cost of inference time. BiSeNetV2 requires the width and height to each be a positive multiple of 32.
+
+For example, to build for 832×416 pixels with FP16 enabled, run these commands from the repository root.
 
 ```bash
-pip install onnxruntime
-cd build/cli
-./convert_onnx2ncnn --model=path/to/model.onnx --height=416 --width=832
+mkdir -p build && cd build
+cmake -DSEG_WIDTH=832 -DSEG_HEIGHT=416 -DSEG_PRECISION=fp16 ..
+make -j$(nproc)
 ```
 
-and then rebuild ARM-VO.
-
-**Note** that the **TensorRT** backend uses a fixed shape. This limitation will be mitigated in a near future.
+To change the settings later, rerun `cmake` and `make` in the same build directory. Use `fp32` or `fp16` for precision. FP16 enables half precision where the hardware supports it. The output mask matches the original camera frame size at either precision.
