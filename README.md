@@ -56,9 +56,6 @@ cd ..
 | `BUILD_PYTHON_BINDINGS` | `OFF` | Python API | `python3 -m pip install pybind11 numpy` |
 | `BUILD_TESTS` | `OFF` | Unit tests | Catch2 v2.13.10: automatically detected if available, otherwise fetched and built by CMake. |
 
-
-The segmentation settings replace the `convert_onnx2ncnn` CLI. The deprecated C++ `armvo::tools::Onnx2NcnnConverter` remains available for calibration.
-
 #### Uninstall
 
 Keep the build directory after installation: it contains the uninstall script
