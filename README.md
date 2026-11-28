@@ -24,7 +24,7 @@ ARM-VO is an efficient monocular visual odometry library for on-road vehicles. I
 
 ## Build and install
 
-ARM-VO requires C++17, CMake 3.20+, OpenCV 4.5.0+, and either ncnn or TensorRT 8.6.x (TensorRT is preferred if available). Note that you don't need to install all of the mentioned dependencies. ARM-VO will first check your system to find most of them. If not found, it'll start to fetch and build them (needs network obviously).So, all you need to do is to install build dependencies:
+ARM-VO requires C++17, CMake 3.20+, OpenCV 4.5.0+, and either ncnn or TensorRT 8.6.x (TensorRT is preferred if available). Note that you don't need to install all of the mentioned dependencies. ARM-VO will first check your system to find most of them. If not found, it'll start to fetch and build them (needs network obviously). So, all you need to do is to install build dependencies:
 
 ```bash
 sudo apt install build-essential git cmake pkg-config libprotobuf-dev protobuf-compiler
@@ -47,7 +47,7 @@ cd ..
 
 | Option | Default | Purpose | Extra dependencies |
 |---|---|---|---|
-| `INFERENCE_BACKEND` | `AUTO` | Explicit selection for inference backend; You can set it to `NCNN` or `TENSORRT` or `AUTO` (prefers TensorRT over Ncnn when available) | `TENSORRT` requires an installed TensorRT 8.6.x with `trtexec`, the CUDA toolkit and a compatible GPU at build time. ncnn conversion runs on the CPU and requires host executables `onnx2ncnn` and `ncnnoptimize` (included in the bundled native ncnn build). |
+| `INFERENCE_BACKEND` | `AUTO` | Explicit selection for inference backend; You can set it to `NCNN` or `TENSORRT` or `AUTO` (prefers TensorRT over Ncnn when available) | `TENSORRT` requires an installed TensorRT 8.6.x with `trtexec`, the CUDA toolkit and a compatible GPU at build time. |
 | `SEG_WIDTH` | `640` | Segmentation input width in pixels, a positive multiple of 32 | None |
 | `SEG_HEIGHT` | `320` | Segmentation input height in pixels, a positive multiple of 32 | None |
 | `SEG_PRECISION` | `fp32` | Segmentation model precision, either `fp32` or `fp16` | None |
@@ -96,7 +96,7 @@ Check the [C++ example](examples/cpp) or [Python example](examples/python) to se
 
 ## Notes
 - ARM-VO leverages a low-resolution (320x640) BisenetV2 segmentation model to 1) estimate scale, and 2) perform better in dynamic scenes. You can increase or decrease the resolution to trade-off between accuracy and FPS. Check [here](docs/segmentation.md) to read more and go through the required steps.
-- If you get low FPS on single-board computers (e.g. Raspberry Pi), check your power adapter.
+- If you get low FPS on single-board computers (e.g. Raspberry Pi), check your power adapter and make sure the processor is not overheated.
 
 ## For Developers
 #### Repository Layout
